@@ -4,25 +4,10 @@
   const canvas = document.querySelector('.star-field');
   const context = canvas?.getContext('2d');
   const stage = document.querySelector('.world-stage');
-  const toggle = stage?.querySelector('.scene-toggle');
-  const notes = stage?.querySelector('.world-notes');
   const dialog = document.querySelector('.search-dialog');
   const reading = document.body.classList.contains('reading-view');
   const root = document.documentElement;
 
-  function showNotes(open) {
-    notes.hidden = !open;
-    stage.classList.toggle('show-notes', open);
-    toggle.setAttribute('aria-expanded', String(open));
-    toggle.querySelector('span').textContent = open ? '收起场景笔记' : '显示场景笔记';
-  }
-  toggle?.addEventListener('click', () => showNotes(notes.hidden));
-  stage?.addEventListener('keydown', event => {
-    if (event.key === 'Escape' && !notes.hidden) {
-      showNotes(false);
-      toggle.focus();
-    }
-  });
   if (!context && !stage) return;
 
   // The fixed canvas sits behind the content. Each star keeps its own world position

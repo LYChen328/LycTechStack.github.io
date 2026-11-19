@@ -19,7 +19,7 @@
 <meta name="twitter:card" content="summary">
   <link rel="canonical" href="https://lychen328.github.io/LycTechStack.github.io/">
   <link rel="icon" href="/LycTechStack.github.io/images/journal/mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/LycTechStack.github.io/css/journal.css?v=ringworld">
+  <link rel="stylesheet" href="/LycTechStack.github.io/css/journal.css?v=atlas">
   
   
 
@@ -29,7 +29,7 @@
 
 
   <script defer src="/LycTechStack.github.io/js/journal.js?v=ringworld"></script>
-  <script defer src="/LycTechStack.github.io/js/world-field.js"></script>
+  <script defer src="/LycTechStack.github.io/js/world-field.js?v=atlas"></script>
 <link rel="alternate" href="/LycTechStack.github.io/atom.xml" title="LycTechStack" type="application/atom+xml">
 </head>
 <body id="top">
@@ -69,6 +69,7 @@
   <main id="main" tabindex="-1">
   
     
+
 <section class="hero" aria-labelledby="hero-title">
   <div class="world-stage">
     <div class="world-frame world-base"><div class="world-sheet">
@@ -106,20 +107,151 @@
       <p class="hero-lead">游戏引擎与图形学开发笔记</p>
       <div class="hero-links"><a class="button-primary" href="#notes">浏览笔记 <svg class="icon" width="17" height="17" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#arrow"/></svg></a><a class="button-secondary" href="/LycTechStack.github.io/archives/">文章归档 <svg class="icon" width="14" height="14" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#chevron"/></svg></a></div>
     </div>
-    <button class="scene-toggle js-only" type="button" aria-expanded="false" aria-controls="world-notes"><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#layers"/></svg><span>显示场景笔记</span></button>
-    <nav class="world-frame world-notes" id="world-notes" aria-label="场景里的技术笔记" hidden><div class="world-sheet">
-      
+    
+
+<nav class="world-atlas" aria-label="场景地图">
+  
+    <div class="map-region region-geometry">
+      <svg class="atlas-tracks" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
         
-        <a class="world-pin pin-ring" href="/LycTechStack.github.io/2022/03/13/20220313-%E5%87%A0%E4%BD%95/" title="【计算机图形学】（九）几何"><i aria-hidden="true"></i><span>环带几何 <svg class="icon" width="12" height="12" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></span></a>
-      
+  
+
         
-        <a class="world-pin pin-sky" href="/LycTechStack.github.io/2022/06/02/20220602-GAMES202-%E5%AE%9E%E6%97%B6%E7%8E%AF%E5%A2%83%E5%85%89%E7%85%A7/" title="【高质量实时渲染】实时环境光照"><i aria-hidden="true"></i><span>环境光照 <svg class="icon" width="12" height="12" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></span></a>
+  <path class="track-wide note-track" d="M 9 16 C 16.5 16, 16.5 37, 24 37"></path><path class="track-portrait note-track" d="M 9 38 C 22.5 38, 22.5 47, 36 47"></path>
+
+      </svg>
+      <div class="map-stop" style="--map-x:9%;--map-y:16%;--portrait-x:9%;--portrait-y:38%">
+        <a class="map-hub" href="/LycTechStack.github.io/categories/GAMES101/" aria-label="图形学基础（GAMES101）分类" title="GAMES101 · 15 篇笔记"><i class="map-diamond" aria-hidden="true"></i><span>图形学基础</span></a>
+        <ul class="map-branches" aria-label="图形基础的其他分类">
+          <li><a href="/LycTechStack.github.io/categories/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B8%8E%E7%AE%97%E6%B3%95/">数据结构与算法</a></li><li><a href="/LycTechStack.github.io/categories/%E7%9F%A5%E8%AF%86%E6%B1%87%E6%80%BB/">知识汇总</a></li>
+        </ul>
+      </div>
       
+        <a class="map-note opens-west" style="--map-x:24%;--map-y:37%;--portrait-x:36%;--portrait-y:47%" href="/LycTechStack.github.io/2022/03/13/20220313-%E5%87%A0%E4%BD%95/" title="【计算机图形学】（九）几何" aria-label="环带几何，单篇笔记"><i class="map-dot" aria-hidden="true"></i><span>环带几何</span></a>
+      
+    </div>
+  
+    <div class="map-region region-pipeline">
+      <svg class="atlas-tracks" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
         
-        <a class="world-pin pin-city" href="/LycTechStack.github.io/2022/08/07/20220807-%E9%81%AE%E6%8C%A1%E5%89%94%E9%99%A4%E6%80%BB%E7%BB%93/" title="【Real-Time Rendering】遮挡剔除总结"><i aria-hidden="true"></i><span>城市遮挡剔除 <svg class="icon" width="12" height="12" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></span></a>
+  <path class="track-wide main-track" d="M 9 16 C 3 16, 3 64, 10 64"></path><path class="track-portrait main-track" d="M 9 38 C 3 38, 3 59, 9 59"></path>
+
+        
+  <path class="track-wide note-track" d="M 10 64 C 41 64, 41 62, 72 62"></path><path class="track-portrait note-track" d="M 9 59 C 49.5 59, 49.5 64, 90 64"></path>
+
+      </svg>
+      <div class="map-stop" style="--map-x:10%;--map-y:64%;--portrait-x:9%;--portrait-y:59%">
+        <a class="map-hub" href="/LycTechStack.github.io/categories/Real-Time-Rendering/" aria-label="实时渲染（Real-Time Rendering）分类" title="Real-Time Rendering · 13 篇笔记"><i class="map-diamond" aria-hidden="true"></i><span>实时渲染</span></a>
+        <ul class="map-branches" aria-label="渲染管线的其他分类">
+          <li><a href="/LycTechStack.github.io/categories/%E5%85%89%E6%A0%85%E5%8C%96%E6%B8%B2%E6%9F%93%E5%99%A8/">光栅化渲染器</a></li><li><a href="/LycTechStack.github.io/categories/Vulkan/">Vulkan</a></li>
+        </ul>
+      </div>
       
-    </div></nav>
+        <a class="map-note opens-west" style="--map-x:72%;--map-y:62%;--portrait-x:90%;--portrait-y:64%" href="/LycTechStack.github.io/2022/08/07/20220807-%E9%81%AE%E6%8C%A1%E5%89%94%E9%99%A4%E6%80%BB%E7%BB%93/" title="【Real-Time Rendering】遮挡剔除总结" aria-label="城市遮挡剔除，单篇笔记"><i class="map-dot" aria-hidden="true"></i><span>城市遮挡剔除</span></a>
+      
+    </div>
+  
+    <div class="map-region region-engine">
+      <svg class="atlas-tracks" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        
+  <path class="track-wide main-track" d="M 10 64 C 28.5 64, 28.5 68, 47 68"></path><path class="track-portrait main-track" d="M 9 59 C 21 59, 21 73, 33 73"></path>
+
+        
+      </svg>
+      <div class="map-stop" style="--map-x:47%;--map-y:68%;--portrait-x:33%;--portrait-y:73%">
+        <a class="map-hub" href="/LycTechStack.github.io/categories/%E6%B8%B8%E6%88%8F%E5%BC%95%E6%93%8E/" aria-label="游戏引擎分类" title="游戏引擎 · 4 篇笔记"><i class="map-diamond" aria-hidden="true"></i><span>游戏引擎</span></a>
+        <ul class="map-branches" aria-label="引擎架构的其他分类">
+          <li><a href="/LycTechStack.github.io/categories/Piccolo%E5%BC%95%E6%93%8E%E4%BB%A3%E7%A0%81%E8%A7%A3%E8%AF%BB/">Piccolo引擎代码解读</a></li><li><a href="/LycTechStack.github.io/categories/%E8%99%9A%E5%B9%BB%E5%BC%95%E6%93%8E%E6%B8%B2%E6%9F%93%E4%BD%93%E7%B3%BB/">虚幻引擎渲染体系</a></li><li><a href="/LycTechStack.github.io/categories/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/">设计模式</a></li>
+        </ul>
+      </div>
+      
+    </div>
+  
+    <div class="map-region region-runtime">
+      <svg class="atlas-tracks" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        
+  <path class="track-wide main-track" d="M 47 68 C 68.5 68, 68.5 69, 90 69"></path><path class="track-portrait main-track" d="M 33 73 C 61.5 73, 61.5 84, 90 84"></path>
+
+        
+      </svg>
+      <div class="map-stop opens-west" style="--map-x:90%;--map-y:69%;--portrait-x:90%;--portrait-y:84%">
+        <a class="map-hub" href="/LycTechStack.github.io/categories/%E6%B7%B1%E5%BA%A6%E6%8E%A2%E7%B4%A2C-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B/" aria-label="C++ 对象模型（深度探索C++对象模型）分类" title="深度探索C++对象模型 · 7 篇笔记"><i class="map-diamond" aria-hidden="true"></i><span>C++ 对象模型</span></a>
+        <ul class="map-branches" aria-label="语言与运行时的其他分类">
+          <li><a href="/LycTechStack.github.io/categories/STL/">STL</a></li><li><a href="/LycTechStack.github.io/categories/Lua/">Lua</a></li><li><a href="/LycTechStack.github.io/categories/C%E5%92%8CC-%E5%AE%89%E5%85%A8%E7%BC%96%E7%A0%81/">C和C++安全编码</a></li>
+        </ul>
+      </div>
+      
+    </div>
+  
+    <div class="map-region region-lighting">
+      <svg class="atlas-tracks" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        
+  <path class="track-wide main-track" d="M 90 69 C 95 69, 95 20, 91 20"></path><path class="track-portrait main-track" d="M 90 84 C 95 84, 95 39, 91 39"></path>
+
+        
+  <path class="track-wide note-track" d="M 91 20 C 96 20, 96 48, 87 48"></path><path class="track-portrait note-track" d="M 91 39 C 88 39, 88 51, 85 51"></path>
+
+      </svg>
+      <div class="map-stop opens-west" style="--map-x:91%;--map-y:20%;--portrait-x:91%;--portrait-y:39%">
+        <a class="map-hub" href="/LycTechStack.github.io/categories/RayTracer/" aria-label="光线追踪（RayTracer）分类" title="RayTracer · 22 篇笔记"><i class="map-diamond" aria-hidden="true"></i><span>光线追踪</span></a>
+        <ul class="map-branches" aria-label="光照与材质的其他分类">
+          <li><a href="/LycTechStack.github.io/categories/Unity-Shader/">Unity Shader</a></li><li><a href="/LycTechStack.github.io/categories/%E9%AB%98%E8%B4%A8%E9%87%8F%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93/">高质量实时渲染</a></li>
+        </ul>
+      </div>
+      
+        <a class="map-note opens-west" style="--map-x:87%;--map-y:48%;--portrait-x:85%;--portrait-y:51%" href="/LycTechStack.github.io/2022/06/02/20220602-GAMES202-%E5%AE%9E%E6%97%B6%E7%8E%AF%E5%A2%83%E5%85%89%E7%85%A7/" title="【高质量实时渲染】实时环境光照" aria-label="环境光照，单篇笔记"><i class="map-dot" aria-hidden="true"></i><span>环境光照</span></a>
+      
+    </div>
+  
+</nav>
+<div class="map-key">
+  <strong>场景地图</strong><span><i class="map-diamond" aria-hidden="true"></i>分类</span><span><i class="map-dot" aria-hidden="true"></i>单篇笔记</span>
+</div>
+
   </div>
+  
+<nav class="atlas-index" aria-label="场景地图分类索引">
+  <div class="wrap atlas-columns">
+    
+      <div class="atlas-column region-geometry">
+        <h2><i class="map-diamond" aria-hidden="true"></i>图形基础</h2>
+        
+<ul><li><a href="/LycTechStack.github.io/categories/GAMES101/">GAMES101</a></li><li><a href="/LycTechStack.github.io/categories/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B8%8E%E7%AE%97%E6%B3%95/">数据结构与算法</a></li><li><a href="/LycTechStack.github.io/categories/%E7%9F%A5%E8%AF%86%E6%B1%87%E6%80%BB/">知识汇总</a></li></ul>
+
+      </div>
+    
+      <div class="atlas-column region-pipeline">
+        <h2><i class="map-diamond" aria-hidden="true"></i>渲染管线</h2>
+        
+<ul><li><a href="/LycTechStack.github.io/categories/Real-Time-Rendering/">Real-Time Rendering</a></li><li><a href="/LycTechStack.github.io/categories/%E5%85%89%E6%A0%85%E5%8C%96%E6%B8%B2%E6%9F%93%E5%99%A8/">光栅化渲染器</a></li><li><a href="/LycTechStack.github.io/categories/Vulkan/">Vulkan</a></li></ul>
+
+      </div>
+    
+      <div class="atlas-column region-engine">
+        <h2><i class="map-diamond" aria-hidden="true"></i>引擎架构</h2>
+        
+<ul><li><a href="/LycTechStack.github.io/categories/%E6%B8%B8%E6%88%8F%E5%BC%95%E6%93%8E/">游戏引擎</a></li><li><a href="/LycTechStack.github.io/categories/Piccolo%E5%BC%95%E6%93%8E%E4%BB%A3%E7%A0%81%E8%A7%A3%E8%AF%BB/">Piccolo引擎代码解读</a></li><li><a href="/LycTechStack.github.io/categories/%E8%99%9A%E5%B9%BB%E5%BC%95%E6%93%8E%E6%B8%B2%E6%9F%93%E4%BD%93%E7%B3%BB/">虚幻引擎渲染体系</a></li><li><a href="/LycTechStack.github.io/categories/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/">设计模式</a></li></ul>
+
+      </div>
+    
+      <div class="atlas-column region-runtime">
+        <h2><i class="map-diamond" aria-hidden="true"></i>语言与运行时</h2>
+        
+<ul><li><a href="/LycTechStack.github.io/categories/%E6%B7%B1%E5%BA%A6%E6%8E%A2%E7%B4%A2C-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B/">深度探索C++对象模型</a></li><li><a href="/LycTechStack.github.io/categories/STL/">STL</a></li><li><a href="/LycTechStack.github.io/categories/Lua/">Lua</a></li><li><a href="/LycTechStack.github.io/categories/C%E5%92%8CC-%E5%AE%89%E5%85%A8%E7%BC%96%E7%A0%81/">C和C++安全编码</a></li></ul>
+
+      </div>
+    
+      <div class="atlas-column region-lighting">
+        <h2><i class="map-diamond" aria-hidden="true"></i>光照与材质</h2>
+        
+<ul><li><a href="/LycTechStack.github.io/categories/RayTracer/">RayTracer</a></li><li><a href="/LycTechStack.github.io/categories/Unity-Shader/">Unity Shader</a></li><li><a href="/LycTechStack.github.io/categories/%E9%AB%98%E8%B4%A8%E9%87%8F%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93/">高质量实时渲染</a></li></ul>
+
+      </div>
+    
+    
+  </div>
+</nav>
+
   <div class="hero-foot"><div class="wrap hero-foot-inner">
     <div class="journal-counts">
       <a href="/LycTechStack.github.io/archives/"><strong>135</strong> 篇笔记</a><i></i>
