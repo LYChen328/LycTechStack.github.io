@@ -1,130 +1,222 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>【计算机图形学】（十三）路径追踪 · LycTechStack</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a1017">
+  <meta name="generator" content="Hexo 5.4.1">
+  <title>【计算机图形学】（十三）路径追踪 | LycTechStack</title>
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"lychen328.github.io","root":"/LycTechStack.github.io/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":true,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":true,"nav":null,"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":5,"unescape":false,"preload":false},"motion":{"enable":false,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+  <meta name="description" content="路径追踪（Path Tracing）这一节我们正式开始学习路径追踪技术，首先我们要利用上一节的辐射度量学基础理解双向反射分布函数并推导出反射方程和渲染方程，然后利用渲染方程理解全局光照，之后简单复习一下蒙特卡洛积分的相关内容，最后通过解渲染方程来构建路径追踪算法。这一节内容可能非常硬核，涉及物理、微积分、概率论等多方面的知识，但这也是迈向真正的现代图形学大门的第一步。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【计算机图形学】（十三）路径追踪">
+<meta property="og:url" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/index.html">
+<meta property="og:site_name" content="LycTechStack">
+<meta property="og:description" content="路径追踪（Path Tracing）这一节我们正式开始学习路径追踪技术，首先我们要利用上一节的辐射度量学基础理解双向反射分布函数并推导出反射方程和渲染方程，然后利用渲染方程理解全局光照，之后简单复习一下蒙特卡洛积分的相关内容，最后通过解渲染方程来构建路径追踪算法。这一节内容可能非常硬核，涉及物理、微积分、概率论等多方面的知识，但这也是迈向真正的现代图形学大门的第一步。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320141430022.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320142742653.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320143225898.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320145641378.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320145827348.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320145952914.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320150319277.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320151450998.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320151703670.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320153406232.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320153729678.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320153751936.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320155016764.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320155133357.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320155335268.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320155447163.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320155738534.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320161415261.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320163435750.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320164359977.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320165056742.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320165220430.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320165509284.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320165552391.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320165624306.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320170432437.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320170839308.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320171940751.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320174112743.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320174506545.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-2022-03-20175206.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320180100174.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320180717009.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320181219602.png">
+<meta property="article:published_time" content="2022-03-20T11:43:42.000Z">
+<meta property="article:modified_time" content="2026-11-18T15:42:22.803Z">
+<meta property="article:author" content="Lyc">
+<meta property="article:tag" content="计算机图形学">
+<meta property="article:tag" content="光线追踪">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320141430022.png">
   <link rel="canonical" href="https://lychen328.github.io/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/">
-  <link rel="alternate" type="application/atom+xml" href="/LycTechStack.github.io/atom.xml">
-  <script>try { const mode = localStorage.getItem('studio-appearance'); if (mode) document.documentElement.dataset.mode = mode; } catch {}</script>
-  <link rel="stylesheet" href="/LycTechStack.github.io/studio/studio.css">
-  <script defer src="/LycTechStack.github.io/studio/studio.js"></script>
-  <script defer src="/LycTechStack.github.io/studio/stars.js?v=2"></script>
+  <link rel="icon" href="/LycTechStack.github.io/images/journal/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/LycTechStack.github.io/css/journal.css">
+  
+  
+
+
+
+
+
+
+  <script defer src="/LycTechStack.github.io/js/journal.js"></script>
+  
+<link rel="alternate" href="/LycTechStack.github.io/atom.xml" title="LycTechStack" type="application/atom+xml">
 </head>
-<body>
-<a class="skip" href="#main">跳到正文</a>
-<header class="mast"><div class="mast-inner">
-  <a class="brand" href="/LycTechStack.github.io/"><span class="brand-icon" aria-hidden="true">✴︎</span>LycTechStack</a>
-  <nav aria-label="主导航">
-    <a  href="/LycTechStack.github.io/">首页</a>
-    <a  href="/LycTechStack.github.io/archives/">文章目录</a>
-    <a  href="/LycTechStack.github.io/categories/">专题</a>
-  </nav>
-  <div class="actions">
-    <button type="button" data-search aria-label="搜索文章"><i class="glass"></i></button>
-    <button type="button" data-mode aria-label="切换明暗模式"><i class="mode-icon"></i></button>
+<body id="top">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="world-grid" aria-hidden="true"></div>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="wordmark" href="/LycTechStack.github.io/" rel="home"><img src="/LycTechStack.github.io/images/journal/mark.svg" alt="" width="33" height="33">LycTechStack</a>
+      <nav class="primary-nav" id="primary-nav" aria-label="主导航">
+        
+          
+          <a href="/LycTechStack.github.io/">首页</a>
+        
+          
+          <a href="/LycTechStack.github.io/archives/">归档</a>
+        
+          
+          <a href="/LycTechStack.github.io/categories/">分类</a>
+        
+          
+          <a href="/LycTechStack.github.io/tags/">标签</a>
+        
+          
+          <a href="/LycTechStack.github.io/about/">关于</a>
+        
+      </nav>
+      <div class="header-tools">
+        <button class="search-trigger js-only" type="button" aria-label="搜索文章" aria-haspopup="dialog"><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#search"/></svg><span>搜索</span><kbd>/</kbd></button>
+        <a class="github-link" href="https://github.com/LYChen328/" aria-label="Lyc 的 GitHub" target="_blank" rel="noopener"><svg class="icon" width="19" height="19" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#github"/></svg></a>
+        <button class="menu-toggle js-only" type="button" aria-label="展开导航" aria-expanded="false" aria-controls="primary-nav"><svg class="icon" width="22" height="22" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#menu"/></svg></button>
+      </div>
+    </div>
+    <div class="reading-progress" aria-hidden="true"></div>
+  </header>
+  <main id="main" tabindex="-1">
+<div class="wrap inner-page post-page">
+  <div class="breadcrumbs"><a href="/LycTechStack.github.io/">首页</a><span>/</span><a href="/LycTechStack.github.io/archives/">归档</a>
+    <span>/</span><a href="/LycTechStack.github.io/categories/GAMES101/">GAMES101</a>
   </div>
-</div></header>
-<main id="main">
-<header class="sky article-hero">
-  <canvas class="starfield" aria-hidden="true"></canvas>
-  <div class="hero-copy"><p class="sky-kicker"><a href="/LycTechStack.github.io/categories/GAMES101/">GAMES101</a> </p>
-    <h1>【计算机图形学】（十三）路径追踪</h1>
-    <p class="deck">Lyc　·　<time>2022 年 3 月 20 日</time>　·　9 分钟</p>
-  </div><div class="sky-foot"><a href="#reading">开始阅读 ↓</a><button class="motion" type="button" data-motion aria-label="暂停星空动画" aria-pressed="false" title="暂停星空动画"><span aria-hidden="true">Ⅱ</span></button>
-</div>
-</header>
-<div class="reading" id="reading">
-  <canvas class="starfield margin-stars" aria-hidden="true"></canvas>
-  <div class="reader wrap">
-    <aside><details class="outline" open><summary>本篇目录</summary><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA%EF%BC%88Path-Tracing%EF%BC%89"><span class="toc-text">路径追踪（Path Tracing）</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-%E5%8F%8C%E5%90%91%E5%8F%8D%E5%B0%84%E5%88%86%E5%B8%83%E5%87%BD%E6%95%B0%EF%BC%88BRDF%EF%BC%89"><span class="toc-text">1 双向反射分布函数（BRDF）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-%E5%8F%8D%E5%B0%84%E6%96%B9%E7%A8%8B"><span class="toc-text">2 反射方程</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-%E6%B8%B2%E6%9F%93%E6%96%B9%E7%A8%8B"><span class="toc-text">3 渲染方程</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-%E5%85%A8%E5%B1%80%E5%85%89%E7%85%A7"><span class="toc-text">4 全局光照</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#5-%E8%92%99%E7%89%B9%E5%8D%A1%E6%B4%9B%E7%A7%AF%E5%88%86"><span class="toc-text">5 蒙特卡洛积分</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#6-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA"><span class="toc-text">6 路径追踪</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#7-%E6%80%BB%E7%BB%93"><span class="toc-text">7 总结</span></a></li></ol></li></ol></details></aside>
-    <article class="prose"><h3 id="路径追踪（Path-Tracing）"><a href="#路径追踪（Path-Tracing）" class="headerlink" title="路径追踪（Path Tracing）"></a>路径追踪（Path Tracing）</h3><p>这一节我们正式开始学习路径追踪技术，首先我们要利用上一节的辐射度量学基础理解双向反射分布函数并推导出反射方程和渲染方程，然后利用渲染方程理解全局光照，之后简单复习一下蒙特卡洛积分的相关内容，最后通过解渲染方程来构建路径追踪算法。这一节内容可能非常硬核，涉及物理、微积分、概率论等多方面的知识，但这也是迈向真正的<strong>现代</strong>图形学大门的第一步。</p>
+  <article itemscope itemtype="https://schema.org/BlogPosting">
+    <header class="article-heading">
+      
+      <p class="kicker article-series">计算机图形学<span>第十三篇</span></p>
+      <h1 class="page-title" itemprop="headline">路径追踪</h1>
+      <div class="article-meta"><span itemprop="author">Lyc</span><i></i>
+        <time datetime="2022-03-20T11:43:42.000Z" itemprop="datePublished">2022-03-20</time>
+        <i></i><span>9.8k 字</span>
+        <i></i><span><svg class="icon" width="14" height="14" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#clock"/></svg>约 9 分钟</span>
+        <span id="busuanzi_container_page_pv" style="display:none"><span id="busuanzi_value_page_pv"></span> 次阅读</span>
+      </div>
+    </header>
+    
+    <div class="article-layout">
+      <aside class="toc-panel"><details open><summary><svg class="icon" width="17" height="17" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#toc"/></svg>文章目录 <svg class="icon" width="15" height="15" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#chevron"/></svg></summary><nav aria-label="文章目录"><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA%EF%BC%88Path-Tracing%EF%BC%89"><span class="toc-text">路径追踪（Path Tracing）</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-%E5%8F%8C%E5%90%91%E5%8F%8D%E5%B0%84%E5%88%86%E5%B8%83%E5%87%BD%E6%95%B0%EF%BC%88BRDF%EF%BC%89"><span class="toc-text">1 双向反射分布函数（BRDF）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-%E5%8F%8D%E5%B0%84%E6%96%B9%E7%A8%8B"><span class="toc-text">2 反射方程</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-%E6%B8%B2%E6%9F%93%E6%96%B9%E7%A8%8B"><span class="toc-text">3 渲染方程</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-%E5%85%A8%E5%B1%80%E5%85%89%E7%85%A7"><span class="toc-text">4 全局光照</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#5-%E8%92%99%E7%89%B9%E5%8D%A1%E6%B4%9B%E7%A7%AF%E5%88%86"><span class="toc-text">5 蒙特卡洛积分</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#6-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA"><span class="toc-text">6 路径追踪</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#7-%E6%80%BB%E7%BB%93"><span class="toc-text">7 总结</span></a></li></ol></li></ol></nav></details></aside>
+      <div class="article-column">
+        <div class="prose post-body" itemprop="articleBody">
+          
+          <h3 id="路径追踪（Path-Tracing）"><a href="#路径追踪（Path-Tracing）" class="headerlink" title="路径追踪（Path Tracing）"></a>路径追踪（Path Tracing）</h3><p>这一节我们正式开始学习路径追踪技术，首先我们要利用上一节的辐射度量学基础理解双向反射分布函数并推导出反射方程和渲染方程，然后利用渲染方程理解全局光照，之后简单复习一下蒙特卡洛积分的相关内容，最后通过解渲染方程来构建路径追踪算法。这一节内容可能非常硬核，涉及物理、微积分、概率论等多方面的知识，但这也是迈向真正的<strong>现代</strong>图形学大门的第一步。</p>
 <p><em><span id="more"></span></em></p>
 <h4 id="1-双向反射分布函数（BRDF）"><a href="#1-双向反射分布函数（BRDF）" class="headerlink" title="1 双向反射分布函数（BRDF）"></a>1 双向反射分布函数（BRDF）</h4><p>在学习路径追踪之前我们还需要一系列的前置知识，第一个就从双向反射分布函数（Bidirectional Reflectance Distribution Function）开始。</p>
 <p>我们假设一个平面 dA 从某个方向 $\omega_i$ 接收到的 Radiance 会被转化成这个平面上的能量 $E(\omega_i)$ ，然后这些能量又会从 dA 向四面八方反射出去，但一般情况下不会全部反射出去，而是会有一部分能量被保留，另外的能量被反射出去，假设在某个方向 $\omega_r$ 反射出去的能量是 $L_r(\omega_r)$，那么在平面 dA 从方向 $\omega_i$ 接收到的能量 $E(\omega_i)$ 中有多少能量会被反射到 $\omega_r$ 方向成为 $L_r(\omega_r)$，这二者之间存在一个关系，这个关系就叫做双向反射分布函数。</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320141430022.png" alt="image-20220320141430022"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320141430022.png" alt="image-20220320141430022" loading="lazy"></p>
 <p>可以看到 BRDF 就是 $L_r(\omega_r)$ 和 $E(\omega_i)$ 的比值，它描述的就是一个平面从某个方向接收到的能量会往另外某个方向反射多少。</p>
 <p>从物理意义上来说，  BRDF 描述的其实就是物体表面的材质属性，物体之所以在我们看来会显示出不同的材质，就是因为它的表面对光的吸收能力不同，反射能力不同，BRDF 描述的正是一个表面的这种反射光的能力，因此我们说 BRDF 本质上表示的是表面的材质。</p>
 <h4 id="2-反射方程"><a href="#2-反射方程" class="headerlink" title="2 反射方程"></a>2 反射方程</h4><p>有了 BRDF，现在我们考虑一个着色点 $p$，回顾上一节最后我们说的 Radiance 和 Irradiance 的联系，$p$ 点的 Irradiance 就是 Radiance 在各个方向上的积分，那么现在我们从一个方向 $\omega_r$ 去观察点 $p$，也就相当于去计算 $p$ 点从各个方向接收到的能量在 $\omega_r$ 方向总共能反射出多少，那不就是点 $p$ 从每个方向 $\omega_i$ 接收到的能量 $L_i(p,\omega_i)$ 乘以 $\omega_i$ 方向到 $\omega_r$ 方向的 BRDF 再全部积分起来就可以了吗。</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320142742653.png" alt="image-20220320142742653"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320142742653.png" alt="image-20220320142742653" loading="lazy"></p>
 <p>上面的公式表达的意思就是刚才说的，点 $p$ 从每个方向 $\omega_i$ 接收到的能量 $L_i(p,\omega_i)$ 乘以 $\omega_i$ 方向到 $\omega_r$ 方向的 BRDF 再全部积分起来，就得到了一个着色点从四面八方接收到的能量往观察方向反射了多少。这个公式就叫做反射方程。</p>
 <h4 id="3-渲染方程"><a href="#3-渲染方程" class="headerlink" title="3 渲染方程"></a>3 渲染方程</h4><p>反射方程计算的是一个表面从外界接收到的光，能被我们看到多少，如果这个物体本身就会发光呢？那它本身也会向我们的观察方向 $\omega_r$ 发出能量，因此我们可以在反射方程上加上一个自发光项 $L_e(p,\omega_o)$：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320143225898.png" alt="image-20220320143225898"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320143225898.png" alt="image-20220320143225898" loading="lazy"></p>
 <p>这样就得到了能描述更一般情况的渲染方程，上式中 $L_o(p,\omega_o)$ 就是 $p$ 点在 $\omega_o$ 方向反射出的总能量， $L_e(p,\omega_o)$ 是 $p$ 点自身在 $\omega_o$ 方向放射出的能量，球面积分就是 $p$ 点从四面八方接收到的光反射到 $\omega_o$ 方向的总能量，$\Omega^+$代表上半球面，$f_r(p,\omega_i,\omega_o)$ 表示点 $p$ 从 $\omega_i$ 方向到 $\omega_o$ 方向的 BRDF，这里的余弦同样用向量点乘表示，因为所有这些向量也都是指示方向的单位向量，并且都是和布林冯模型中一样，从点 $p$ 指向外边的。</p>
 <h4 id="4-全局光照"><a href="#4-全局光照" class="headerlink" title="4 全局光照"></a>4 全局光照</h4><p>渲染方程就可以描述我们之前经常说到的全局光照，这也是光栅化不好去解决的问题（不代表不能解决），因为光栅化中光线只弹射一次，而全局光照正是因为光线会弹射很多次使得本来光线达到不了的地方能被照亮。</p>
 <p>接下来我们就从简单情况开始，理解渲染方程为什么能表示全局光照。首先考虑只有一个点光源的情况，也是之前我们讨论的最多的情况：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320145641378.png" alt="image-20220320145641378"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320145641378.png" alt="image-20220320145641378" loading="lazy"></p>
 <p>这时的渲染方程就可以写成上面的形式，相当于只有一个方向有入射的 Radiance ，那如果现在有多个点光源：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320145827348.png" alt="image-20220320145827348"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320145827348.png" alt="image-20220320145827348" loading="lazy"></p>
 <p>渲染方程也很简单，就是把全部的点光源反射加起来。接下来如果点光源变成了面光源，相当于从离散到连续：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320145952914.png" alt="image-20220320145952914"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320145952914.png" alt="image-20220320145952914" loading="lazy"></p>
 <p>我们也能理解，离散的求和就是连续的积分，这也是我们刚才得到的最一般的渲染方程。</p>
 <p>到此为止我们讨论的都是光源照射到物体上，也就是直接光照的情况，那对于一个物体表面，他接收到的光不全是从光源来的，还可能是从其他物体表面反射出来的光：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320150319277.png" alt="image-20220320150319277"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320150319277.png" alt="image-20220320150319277" loading="lazy"></p>
 <p>比如上图中的 $X’$ 是其他物体的表面，反射出的光同样会被我们的观察点接收到，这时着色点 $x$ 接收到的从平面 $X’$ 反射来的光相当于我们从点 $x$ 沿着 $-\omega_i$ 方向观察平面 $X’$ 得到的结果，因此着色点 $x$ 接收到的从平面 $X’$ 反射来的光就是上面式子中的 $L_r(X’,-\omega_i)$，从这个渲染方程我们可以看出整个过程是一个递归的过程，当前物体反射的光不仅取决于光源，还取决于其他物体反射的光，其他物体反射的光又取决于光源和别的物体，这也正是渲染方程能够表示全局光照的原因。</p>
 <p>我们继续观察上面的渲染方程，我们要求解的未知数也包含在积分中，所以这是一个积分方程，并且这个看似复杂的积分方程实际上是一个经典的积分方程，叫做<strong>弗雷德霍姆积分方程（Fredholm Integral Equation）</strong>，这个方程可以简化的写成如下形式：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320151450998.png" alt="image-20220320151450998"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320151450998.png" alt="image-20220320151450998" loading="lazy"></p>
 <p>这满足第二类弗雷德霍姆积分方程的一般形式，其中 $K(u,v)dv$ 被称为光线传播算子，表示的是光线 $l(v)$ 经过光线传播算子就传播到了 光线 $l(u)$ 上，这和我们之前说的一个点吸收的光再反射出去的概念其实是一样的。</p>
 <p>接下来我们再进一步简化，把这个方程写成矩阵形式：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320151703670.png" alt="image-20220320151703670"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320151703670.png" alt="image-20220320151703670" loading="lazy"></p>
 <p>至于积分怎么写成矩阵形式，这里不展开讨论，这对我们来说也不重要，总之写成这样的形式之后，我们就可以进一步操作，移项之后再左乘对应的逆矩阵：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320153406232.png" alt="image-20220320153406232"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320153406232.png" alt="image-20220320153406232" loading="lazy"></p>
 <p>然后根据二项式定理，对于矩阵也存在类似泰勒展开的形式， $(I-K)^{-1}$ 的泰勒展开就类似于 $\frac{1}{1-x}$ 的泰勒展开，于是上式可以写成：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320153729678.png" alt="image-20220320153729678"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320153729678.png" alt="image-20220320153729678" loading="lazy"></p>
 <p>我们把这个式子展开进行分析：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320153751936.png" alt="image-20220320153751936"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320153751936.png" alt="image-20220320153751936" loading="lazy"></p>
 <p>先明确这里面各个字母代表什么，在他们没变成这样之前，$L$ 是各个平面反射出的光（可能是我们观察的平面，也可能是其他平面），$E$ 是来自于光源的光，$K$ 是光线传播算子，所以直接来自于光源的光 $E$ 每乘一次光线传播算子 $K$ 就代表光线弹射了一次，所以 $KE$ 表示直接光照，也就是光线只在观察表面弹射了一次进入我们的眼睛，$K^nE$ 表示在多个表面弹射了 n 次之后进入我们的眼睛，我们观察到的光是所有这些光线的总和。 </p>
 <p>换句话说，渲染方程表示：我们看到的光是直接来自于光源的光和经过若干次反射后达到我们眼睛的光的总和。这显然是符合物理世界本身的规律的。而之前的光栅化着色过程，相当于只有前两项：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320155016764.png" alt="image-20220320155016764"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320155016764.png" alt="image-20220320155016764" loading="lazy"></p>
 <p>因此渲染方程可以表示全局光照，因为它考虑了整个场景中经过若干次弹射的光线。</p>
 <p>下图是只有直接光照渲染出来的图：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320155133357.png" alt="image-20220320155133357"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320155133357.png" alt="image-20220320155133357" loading="lazy"></p>
 <p>可以看到因为只计算了直接光照，也就是光线只弹射一次，所以没有光线直接照射到的地方，比如点 $p$ 就是全黑的。下面是计算了一次全局光照渲染出来的图，一次全局光照是指光线额外弹射了一次：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320155335268.png" alt="image-20220320155335268"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320155335268.png" alt="image-20220320155335268" loading="lazy"></p>
 <p>点 $p$ 可以被看到了，但是注意房顶上的吊灯，此时它还是黑色的，下面是计算了四次全局光照的效果：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320155447163.png" alt="image-20220320155447163"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320155447163.png" alt="image-20220320155447163" loading="lazy"></p>
 <p>点 $p$ 变得更清晰了更亮了，而且房顶上的吊灯也变得透明了，因为它是玻璃材质，透射的光进入它的内部在只计算一次额外弹射的情况下是无法被反射出去被我们看到的，所以经过多次弹射后就会显示出来，这也是合理的。下面是计算了十六次全局光照的效果：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320155738534.png" alt="image-20220320155738534"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320155738534.png" alt="image-20220320155738534" loading="lazy"></p>
 <p>可以看到整个画面已经没有太大的变化了，这说明光线弹射的次数越多并不会使画面越亮，而是会逐渐收敛到一个状态，因为光线弹射的越多能量衰减的也越多，这也是和现实世界完全一致的，因此整个渲染方程非常科学的描述了整个场景中光线的传播，所以用渲染方程渲染出的画面自然也就更加接近真实世界。</p>
 <h4 id="5-蒙特卡洛积分"><a href="#5-蒙特卡洛积分" class="headerlink" title="5 蒙特卡洛积分"></a>5 蒙特卡洛积分</h4><p>彻底理解了渲染方程之后，我们就要开始用渲染方程构建图像渲染算法了，但对于我们编码来说，只有这个渲染方程是不够的，因为我们要能够解出这个方程，得到一个计算便捷的表达式，才能去写代码，而我们知道计算机解方程使用的是数值的方法，尤其是对于这样复杂的积分方程，所以我们先简单复习一下计算定积分的常用数值方法——蒙特卡洛积分。</p>
 <p>一般来说计算定积分，我们会先把不定积分算出来，然后再把区间端点代入相减就得到了区间上的定积分，但是对于形态比较复杂的函数来说，我们不容易求出它的不定积分，如下图：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320161415261.png" alt="image-20220320161415261"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320161415261.png" alt="image-20220320161415261" loading="lazy"></p>
 <p>这时就要用数值方法去求积分了，我们知道积分就是面积，经典的黎曼积分就是在区间内取无数个小的长条把他们的面积加起来，而蒙特卡洛积分则是结合了概率论的方法，在区间 $(a,b)$ 内以某种概率分布随机的取一个点，把这个点的函数值作为矩形的高，然后区间长度作为矩形的宽，求出一个矩形面积，随着采样次数增多，把所有的矩形面积取平均就得到了整个区间的近似积分，采样点越多，结果自然也就越接近真实结果。</p>
 <p>所以假设我们要计算定积分：<br>$$<br>\int_{a}^{b}f(x)dx<br>$$<br>我们以一个概率分布 $p(x)$ 在区间 $(a,b)$ 内随机的选取采样点 $X_i$，概率论告诉我们 $p(x)$ 叫做概率密度函数（pdf），则该定积分的蒙特卡洛估计为：<br>$$<br>F_N &#x3D; \frac{1}{N}\sum_{i&#x3D;1}^{N}\frac{f(X_i)}{p(X_i)},\ X_i \sim p(x)<br>$$<br>以均匀分布为例，区间 $(a,b)$ 上的均匀分布的概率密度函数就是：<br>$$<br>X_i \sim p(x) &#x3D; \frac{1}{b-a}<br>$$<br>于是利用均匀分布采样的蒙特卡洛估计为：<br>$$<br>F_N &#x3D; \frac{b-a}{N}\sum_{i&#x3D;1}^{N}f(X_i)<br>$$</p>
 <h4 id="6-路径追踪"><a href="#6-路径追踪" class="headerlink" title="6 路径追踪"></a>6 路径追踪</h4><p>有了前面所有的前置知识，现在我们来正式学习路径追踪。学习一个方法的时候，要学习的第一件事就是为什么要学习这个方法？</p>
 <p>我们之前学习 Whitted 风格光线追踪是为了解决光栅化渲染中的不足，所以路径追踪自然是为了解决 Whitted 风格光线追踪的不足。现在来回顾 Whitted 风格光线追踪有哪些问题。</p>
 <p>首先，在一开始学习 Whitted 风格光线追踪时我们就假设了，所有光线的反射都是完美的镜面反射，也就是只沿着镜面反射方向传播，这显然是不合理的，比如我们之前也提到过的 Glossy 反射：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320163435750.png" alt="image-20220320163435750"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320163435750.png" alt="image-20220320163435750" loading="lazy"></p>
 <p>不过之前我们没有说 Glossy 反射为什么会呈现出这样的效果，这就是因为它的表面没有那么光滑，不足以使光线完美的沿着镜面反射方向传播，而是使光线在镜面反射方向附近一定范围内散射出去，所以呈现出来就是这样模糊的效果。因此 Whitted 风格光线追踪不好处理 Glossy 反射。</p>
 <p>其次，光线遇到漫反射就会停下来。在之前的布林冯光照模型中，只有直接光照会使物体表面显示出颜色，而且这个颜色在之后的传播中也不会继续传播，所以相当于光线遇到漫反射就不再弹射了，如下图：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320164359977.png" alt="image-20220320164359977"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320164359977.png" alt="image-20220320164359977" loading="lazy"></p>
 <p>这是一个只有漫反射的场景，左图是只有直接光照的效果，所以天花板没有光源直接照射就是黑的，并且长的立方体左表面也是黑的；而右图是全局光照的效果，可以看到长的立方体左表面是红色的，这是因为左边的墙是红色的，显然右边的图更接近真实场景，这个真实场景也是存在的，后面我们会看到。</p>
 <p>综上， Whitted 风格光线追踪实际上是错误的，因为它并不符合现实世界的物理规律，而之前我们推导的渲染方程是绝对符合物理规律的正确的光线计算方式。而要使用渲染方程来渲染图像，就要解方程，接下来我们从最简单的情况来分析如何求解渲染方程。</p>
 <p>先考虑只有直接光照的情况，我们只考虑一个着色点，场景中只有一个<strong>面光源</strong>，如下图：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320165056742.png" alt="image-20220320165056742"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320165056742.png" alt="image-20220320165056742" loading="lazy"></p>
 <p>我们的观察方向是 $\omega_o$，不考虑着色点本身发射的光，于是可以得到一个渲染方程：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320165220430.png" alt="image-20220320165220430"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320165220430.png" alt="image-20220320165220430" loading="lazy"></p>
 <p>现在用蒙特卡洛积分来解这个方程，回顾蒙特卡洛估计的一般形式：<br>$$<br>F_N &#x3D; \frac{1}{N}\sum_{i&#x3D;1}^{N}\frac{f(X_i)}{p(X_i)},\ X_i \sim p(x)<br>$$<br>我们只要知道被积函数 $f(x)$ 和概率密度函数 $p(x)$ 就可以了，在这里被积函数 $f(x)$ 显然就是：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320165509284.png" alt="image-20220320165509284"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320165509284.png" alt="image-20220320165509284" loading="lazy"></p>
 <p>概率密度函数 $p(x)$ 我们就取均匀分布，但现在是一个半球面上的积分，半球面的均匀分布自然是：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320165552391.png" alt="image-20220320165552391"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320165552391.png" alt="image-20220320165552391" loading="lazy"></p>
 <p>于是我们的渲染方程就可以写成：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320165624306.png" alt="image-20220320165624306"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320165624306.png" alt="image-20220320165624306" loading="lazy"></p>
 <p>我们把积分转化成了求和的形式，这意味着我们可以写代码了，根据这个求和表达式，就能写出一个计算着色的算法：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">shade(p, wo)</span><br><span class="line">    Randomly choose N directions wi~pdf		//随机的选择N个方向，服从某个概率密度函数pdf的分布，这里是均匀分布</span><br><span class="line">    Lo = 0.0</span><br><span class="line">    For each wi		</span><br><span class="line">        Trace a ray r(p, wi) 		//对每一个方向从着色点打出一条光线</span><br><span class="line">        If ray r hit the light		//如果这个光线能到达光源，就按照公式计算着色</span><br><span class="line">            Lo += (1 / N) * L_i * f_r * cosine / pdf(wi) </span><br><span class="line">    Return Lo</span><br></pre></td></tr></table></figure>
 
 <p>OK，现在我们考虑更复杂一点的情况，如果场景中有其他物体，那么公式中的来自各个方向的光就不一定是来自于光源了，也就是说我们从着色点打出一条光线可能不是达到光源，而是到达其他物体表面：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320170432437.png" alt="image-20220320170432437"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320170432437.png" alt="image-20220320170432437" loading="lazy"></p>
 <p>这时就按我们之前的递归做法，把着色点 P 当成观察点，然后计算 Q 点的着色，所以我们的代码只要加上另一个 if 判断：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">shade(p, wo)</span><br><span class="line">    Randomly choose N directions wi~pdf		//随机的选择N个方向，服从某个概率密度函数pdf的分布，这里是均匀分布</span><br><span class="line">    Lo = 0.0</span><br><span class="line">    For each wi		</span><br><span class="line">        Trace a ray r(p, wi) 		//对每一个方向从着色点打出一条光线</span><br><span class="line">        If ray r hit the light		//如果这个光线能到达光源，就按照公式计算着色</span><br><span class="line">            Lo += (1 / N) * L_i * f_r * cosine / pdf(wi) </span><br><span class="line">        Else If ray r hit an object at q	//如果达到了其他物体表面，就递归地计算</span><br><span class="line">            Lo += (1 / N) * shade(q, -wi) * f_r * cosine / pdf(wi)</span><br><span class="line">    Return Lo</span><br></pre></td></tr></table></figure>
 
 <p>这样似乎就完成了一个像素的着色，但这样可以吗？一定是不行的，因为这样去追踪光线会导致计算量爆炸，下面的图说明了这种情况：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320170839308.png" alt="image-20220320170839308"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320170839308.png" alt="image-20220320170839308" loading="lazy"></p>
 <p>假设我们每次随机采样就选了 100 个方向，那么我们就要追踪 100 条光线，每一条光线如果打到其他物体表面又会采样出 100 条光线，这样经过两次弹射我们就要追踪 100 万条光线，这显然是不能接受的，因此我们就要考虑怎么样才能不让光线数量爆炸，因为这是呈指数增长的，所以只有当光线数量为 1 的时候，不管怎么弹射，它都还是一条光线。于是我们就随机采样一条光线，只跟踪这一条光线，那循环也不需要了，我们的代码就可以简化为：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">shade(p, wo)</span><br><span class="line">    Randomly choose 1 direction wi~pdf		//随机的选择1个方向	</span><br><span class="line">    Trace a ray r(p, wi) 		//从这个方向打出一条光线</span><br><span class="line">    If ray r hit the light		//如果这个光线能到达光源，就按照公式计算着色</span><br><span class="line">        Lo += (1 / N) * L_i * f_r * cosine / pdf(wi) </span><br><span class="line">    Else If ray r hit an object at q	//如果达到了其他物体表面，就递归地计算</span><br><span class="line">        Lo += (1 / N) * shade(q, -wi) * f_r * cosine / pdf(wi)</span><br><span class="line">    Return Lo</span><br></pre></td></tr></table></figure>
 
 <p>上面的代码就是路径追踪的基本思路，只跟踪一条光线，就叫做<strong>路径追踪</strong>。</p>
 <p>显然，这样的方法计算出来的着色会有非常大的噪声，说白了这个着色算出来是多少全靠运气，没关系，我们可以透过一个像素投射出多条视线，然后把所有视线计算出的 Radiance 平均起来作为这个像素的结果：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320171940751.png" alt="image-20220320171940751"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320171940751.png" alt="image-20220320171940751" loading="lazy"></p>
 <p>因此我们可以再写一个生成视线的函数：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">ray_generation(camPos, pixel)</span><br><span class="line">    Uniformly choose N sample positions within the pixel	//在每个像素内选择N个采样点</span><br><span class="line">    pixel_radiance = 0.0</span><br><span class="line">    For each sample in the pixel</span><br><span class="line">        Shoot a ray r(camPos, cam_to_sample) 	//每个采样点投射出一根光线</span><br><span class="line">        If ray r hit the scene at p		//如果光线打到了着色点就调用着色函数</span><br><span class="line">            pixel_radiance += 1 / N * shade(p, sample_to_cam) </span><br><span class="line">    Return pixel_radiance</span><br></pre></td></tr></table></figure>
 
@@ -134,15 +226,15 @@
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">shade(p, wo)</span><br><span class="line">    Manually specify a probability P_RR		//给定一个生存概率</span><br><span class="line">    Randomly select ksi in a uniform dist. in [0, 1] 	//随机生成一个[0,1]之间的数</span><br><span class="line">    If (ksi &gt; P_RR) return 0.0;		//如果这个数大于生存概率，直接返回0，对应1-P的情况</span><br><span class="line">    //否则和之前一样，但是要记得除以生存概率</span><br><span class="line">    Randomly choose 1 direction wi~pdf		//随机的选择1个方向	</span><br><span class="line">    Trace a ray r(p, wi) 		//从这个方向打出一条光线</span><br><span class="line">    If ray r hit the light		//如果这个光线能到达光源，就按照公式计算着色</span><br><span class="line">        Lo += (1 / N) * L_i * f_r * cosine / pdf(wi) / P_RR</span><br><span class="line">    Else If ray r hit an object at q	//如果达到了其他物体表面，就递归地计算</span><br><span class="line">        Lo += (1 / N) * shade(q, -wi) * f_r * cosine / pdf(wi) / P_RR</span><br><span class="line">    Return Lo</span><br></pre></td></tr></table></figure>
 
 <p>现在我们就基本得到了一个正确版本的路径追踪算法。当然这个算法还有问题，那就是我们对一个像素投射出多条光线，可又该投射多少呢？如下图：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320174112743.png" alt="image-20220320174112743"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320174112743.png" alt="image-20220320174112743" loading="lazy"></p>
 <p>对每个像素的采样数量简称为 SPP，SPP 低的时候得到的结果噪声会很大，这很好理解；而 SPP 高的时候效果很好但是效率又非常低，前人大佬们自然是不能容忍这样的问题存在的，那能不能既快效果又好呢，一定是可以的。</p>
 <p>考虑我们现在的方法，只跟踪一条光线，这条光线再朝哪个方向投射光线是完全随机的，对于下面几种情况：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320174506545.png" alt="image-20220320174506545"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320174506545.png" alt="image-20220320174506545" loading="lazy"></p>
 <p>如果场景的光源面积很大，那投射出的光线到达光源的概率就高，可能每 5 条光线就有 1 条能打到光源上，就能计算出一个值；可如果光源面积很小，可能我们投射出了很多光线，但都没有打到光源上，那么这些光线就是没用的，对我们的计算结果没有任何影响，完全浪费掉了，可我们明明知道光源在哪，为什么还要随机选择投射方向呢？</p>
 <p>我们完全可以直接对面光源进行采样，直接在光源上进行采样，这样就能保证每一条光线都能打到光源上，一个都不浪费，但是蒙特卡洛积分要求，对谁积分就得对谁采样，因此我们要对光源平面 $dA$ 采样，就得把渲染方程对 $d\omega$ 的积分改写成对 $dA$ 的积分，实际上就是积分变量替换，只要找到 $dA$ 和 $d\omega$ 的关系就可以了。</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-2022-03-20175206.png" alt="屏幕截图 2022-03-20 175206"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-2022-03-20175206.png" alt="屏幕截图 2022-03-20 175206" loading="lazy"></p>
 <p>我们知道 $d\omega$ 是立体角，立体角的定义是从球心向球面上投射出的一块区域的面积和球半径平方的比值，那么 dA 的立体角就是 dA 在球心方向的投影的面积除以到球心的距离的平方，而立体角是指示方向的，所以 dA 的立体角和 $d\omega$ 表示的是一样的，因此二者相等，所以可以得到：<br>$$<br>d\omega &#x3D; \frac{dA \ cos\theta’}{| x’ - x |^2}<br>$$<br>于是渲染方程就可以改写为：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320180100174.png" alt="image-20220320180100174"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320180100174.png" alt="image-20220320180100174" loading="lazy"></p>
 <p>同时，对于一个面光源 A，均匀采样的概率密度函数就是：<br>$$<br>pdf &#x3D; \frac{1}{A}<br>$$<br>这样也就可以用蒙特卡洛积分解方程了。</p>
 <p>因此路径追踪的算法又要改一下，现在我们一个着色点从其他地方入射来的 Radiance 就分为两部分：</p>
 <ul>
@@ -154,11 +246,11 @@
 
 <p>到此为止我们就得到了一个完全正确的路径追踪算法。</p>
 <p>还有最后一个小问题，如何判断在光源平面采样的光线和着色点之间是否有阻挡？</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320180717009.png" alt="image-20220320180717009"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320180717009.png" alt="image-20220320180717009" loading="lazy"></p>
 <p>只需要从着色点再打出一条光线看能不能达到光源就可以了，如果有阻挡，这条打出去的光线就会碰到其他物体。</p>
 <p>现在可以说路径追踪的全部<strong>入门</strong>内容就彻底结束了！</p>
 <p>最后来看看路径追踪的效果：</p>
-<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320181219602.png" alt="image-20220320181219602"></p>
+<p><img src="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/image-20220320181219602.png" alt="image-20220320181219602" loading="lazy"></p>
 <p>左边是一张真实的相机拍摄的图片，右边是路径追踪算法渲染出来的图片，可以看到渲染的非常真实，可以说是无限接近真实场景，这就是路径追踪的强大之处。</p>
 <h4 id="7-总结"><a href="#7-总结" class="headerlink" title="7 总结"></a>7 总结</h4><p>以上就是路径追踪的全部基础内容，看似已经非常细节了，但实际上还有无数的细节问题没有讨论到，比如：</p>
 <ul>
@@ -171,18 +263,107 @@
 <p>所以我们看似搞懂了路径追踪，其实最多也只能算是刚刚入门，还有太多的东西没有了解到。这一路过来可以说整个路径追踪的流程非常复杂，光是最基础的理论推导都如此困难，那想把代码写对就更是难上加难，并且永远不要忘了我们还只是在学习前人留下的经验。这节课最后闫令琪老师说的话对我的启发非常大：“我学了十年渲染，至今还觉得我什么都不会”。更何况你我呢？</p>
 <p>敬畏科学，学无止境。</p>
 
-    <footer class="post-end"><a href="/LycTechStack.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6/"># 计算机图形学</a> <a href="/LycTechStack.github.io/tags/%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA/"># 光线追踪</a> 
-    <p><a href="/LycTechStack.github.io/2022/03/24/20220324-%E6%9D%90%E8%B4%A8/">较新文章 · 【计算机图形学】（十四）材质 →</a></p>
-    <p><a href="/LycTechStack.github.io/2022/03/19/20220319-%E5%89%8D%E7%BC%80%E5%92%8C/">较早文章 · 【动态规划】（五）前缀和 →</a></p>
-    </footer></article>
-  </div>
+        </div>
+        <div class="tag-cloud post-tags"><a href="/LycTechStack.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6/" rel="tag"><span>#</span> 计算机图形学</a><a href="/LycTechStack.github.io/tags/%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA/" rel="tag"><span>#</span> 光线追踪</a></div>
+        
+        <aside class="credit"><strong>文章版权</strong><p>本文收录于 <a href="/LycTechStack.github.io/">LycTechStack</a>，仅供学习与参考。转载时请注明作者和出处。部分资料来自网络，如有侵权请联系博主。</p></aside>
+        
+  <div class="popular-posts-header">相关文章</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/03/17/20220317-Whitted风格光线追踪/" rel="bookmark">【计算机图形学】（十一）Whitted 风格光线追踪</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/03/18/20220318-辐射度量学/" rel="bookmark">【计算机图形学】（十二）辐射度量学基础</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/03/24/20220324-材质/" rel="bookmark">【计算机图形学】（十四）材质</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/03/24/20220324-渲染和材质前沿/" rel="bookmark">【计算机图形学】（十五）高级渲染和材质概述</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/04/11/20220411-RayTracer-基本工具类/" rel="bookmark">【RayTracer】（一）实现基本工具类</a></div>
+    </li>
+  </ul>
+
+        
+          
+          
+          <nav class="article-nav" aria-label="相邻文章">
+            <a href="/LycTechStack.github.io/2022/03/19/20220319-%E5%89%8D%E7%BC%80%E5%92%8C/" rel="prev"><small>上一篇</small>【动态规划】（五）前缀和</a>
+            <a href="/LycTechStack.github.io/2022/03/24/20220324-%E6%9D%90%E8%B4%A8/" rel="next"><small>下一篇</small>【计算机图形学】（十四）材质</a>
+          </nav>
+        
+        
+    
+
+<section class="article-discussion" aria-labelledby="discussion-title">
+  <h2 id="discussion-title">文章讨论</h2>
+  <a class="text-link" target="_blank" rel="noopener" href="https://github.com/LYChen328/LycTechStack.github.io/issues?q=is%3Aissue%20label%3A12e9b5562cda8bc90554f925fa8dcafa">在 GitHub 查看与回复</a>
+  <a class="text-link" target="_blank" rel="noopener" href="https://github.com/LYChen328/LycTechStack.github.io/issues/new?title=%E3%80%90%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E3%80%91%EF%BC%88%E5%8D%81%E4%B8%89%EF%BC%89%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA&amp;body=https%3A%2F%2Flychen328.github.io%2FLycTechStack.github.io%2F2022%2F03%2F20%2F20220320-%25E8%25B7%25AF%25E5%25BE%2584%25E8%25BF%25BD%25E8%25B8%25AA%2F&amp;labels=Gitalk%2C12e9b5562cda8bc90554f925fa8dcafa">发起讨论</a>
+</section>
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+      </div>
+    </div>
+  </article>
 </div>
 </main>
-<footer class="wrap foot"><a href="/LycTechStack.github.io/">LycTechStack</a><div><a href="/LycTechStack.github.io/tags/">标签</a><a href="/LycTechStack.github.io/about/">关于</a><a href="#main">回到顶部 ↑</a></div></footer>
-<dialog id="search-panel" aria-labelledby="search-title"><form method="dialog"><h2 id="search-title">搜索文章</h2><button aria-label="关闭搜索">×</button></form>
-<input type="search" id="query" placeholder="输入标题或分类" aria-label="搜索关键词"><p id="search-count" role="status"></p>
-<ul id="results"><li><a href="/LycTechStack.github.io/2023/03/16/20230316-C++%E4%B8%8ELua%E4%BA%A4%E4%BA%92%E6%80%BB%E7%BB%93/">C++与Lua交互总结 <small>Lua</small></a></li><li><a href="/LycTechStack.github.io/2023/03/16/20230316-%E5%AE%89%E5%85%A8%E7%BC%96%E7%A0%81-%E5%B9%B6%E5%8F%91%E5%92%8C%E5%A4%9A%E7%BA%BF%E7%A8%8B/">【安全编码】并发和多线程 <small>C和C++安全编码</small></a></li><li><a href="/LycTechStack.github.io/2023/03/16/20230316-%E5%AE%89%E5%85%A8%E7%BC%96%E7%A0%81-%E6%95%B4%E6%95%B0%E5%AE%89%E5%85%A8/">【安全编码】整数安全 <small>C和C++安全编码</small></a></li><li><a href="/LycTechStack.github.io/2023/03/16/20230316-%E5%AE%89%E5%85%A8%E7%BC%96%E7%A0%81-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/">【安全编码】内存管理 <small>C和C++安全编码</small></a></li><li><a href="/LycTechStack.github.io/2023/03/16/20230316-%E5%AE%89%E5%85%A8%E7%BC%96%E7%A0%81-%E5%AD%97%E7%AC%A6%E4%B8%B2/">【安全编码】字符串 <small>C和C++安全编码</small></a></li><li><a href="/LycTechStack.github.io/2023/03/09/20230309-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E5%85%B6%E4%BB%96%E5%B8%B8%E7%94%A8%E6%A8%A1%E5%BC%8F%E5%8F%8A%E6%80%BB%E7%BB%93/">【设计模式】其他常用模式及总结 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/08/20230308-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E5%A4%8D%E5%90%88%E6%A8%A1%E5%BC%8F/">【设计模式】复合模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/08/20230308-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F/">【设计模式】代理模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/07/20230307-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E7%8A%B6%E6%80%81%E6%A8%A1%E5%BC%8F/">【设计模式】状态模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/07/20230307-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E8%BF%AD%E4%BB%A3%E5%99%A8%E6%A8%A1%E5%BC%8F%E5%92%8C%E7%BB%84%E5%90%88%E6%A8%A1%E5%BC%8F/">【设计模式】迭代器模式和组合模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/05/20230305-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E6%A8%A1%E6%9D%BF%E6%96%B9%E6%B3%95%E6%A8%A1%E5%BC%8F/">【设计模式】模板方法模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/05/20230305-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E9%80%82%E9%85%8D%E5%99%A8%E6%A8%A1%E5%BC%8F%E5%92%8C%E5%A4%96%E8%A7%82%E6%A8%A1%E5%BC%8F/">【设计模式】适配器模式和外观模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/05/20230305-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E5%91%BD%E4%BB%A4%E6%A8%A1%E5%BC%8F/">【设计模式】命令模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/04/20230304-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F/">【设计模式】单例模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/04/20230304-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E5%B7%A5%E5%8E%82%E6%A8%A1%E5%BC%8F/">【设计模式】工厂模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/02/20230302-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E8%A3%85%E9%A5%B0%E8%80%85%E6%A8%A1%E5%BC%8F/">【设计模式】装饰者模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/02/20230302-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E8%A7%82%E5%AF%9F%E8%80%85%E6%A8%A1%E5%BC%8F/">【设计模式】观察者模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/02/28/20230228-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E7%AD%96%E7%95%A5%E6%A8%A1%E5%BC%8F/">【设计模式】策略模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2022/08/07/20220807-%E9%81%AE%E6%8C%A1%E5%89%94%E9%99%A4%E6%80%BB%E7%BB%93/">【Real-Time Rendering】遮挡剔除总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/08/07/20220807-UE%E6%B8%B2%E6%9F%93%E4%BD%93%E7%B3%BB-%E7%9B%AE%E5%BD%95%E7%B4%A2%E5%BC%95/">【UE渲染体系】目录索引 <small>虚幻引擎渲染体系</small></a></li><li><a href="/LycTechStack.github.io/2022/07/25/20220725-Piccolo-%E6%B8%B2%E6%9F%93%E7%B3%BB%E7%BB%9F%EF%BC%88%E4%B8%89%EF%BC%89%E5%B8%A7%E8%B0%83%E8%AF%95/">【Piccolo代码解读】渲染系统（三）帧调试 <small>Piccolo引擎代码解读</small></a></li><li><a href="/LycTechStack.github.io/2022/07/23/20220723-%E6%B8%B2%E6%9F%93%E5%99%A8-%E6%9C%80%E7%BB%88%E7%89%88%E8%AF%B4%E6%98%8E%E6%96%87%E6%A1%A3/">【光栅化渲染器】最终版说明文档 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/07/17/20220717-Vulkan-Vulkan%E8%B5%84%E6%BA%90%E7%BB%91%E5%AE%9A%E5%92%8C%E7%8A%B6%E6%80%81%E7%AE%A1%E7%90%86/">【Vulkan】资源绑定和状态管理 <small>Vulkan</small></a></li><li><a href="/LycTechStack.github.io/2022/07/17/20220717-Vulkan-Vulkan%E6%98%BE%E7%A4%BA%E4%B8%8E%E7%BB%98%E5%88%B6/">【Vulkan】显示与绘制 <small>Vulkan</small></a></li><li><a href="/LycTechStack.github.io/2022/07/17/20220717-Vulkan-Vulkan%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/">【Vulkan】内存管理 <small>Vulkan</small></a></li><li><a href="/LycTechStack.github.io/2022/07/17/20220717-Vulkan-Vulkan%E5%A4%9A%E7%BA%BF%E7%A8%8B%E6%B8%B2%E6%9F%93/">【Vulkan】多线程渲染 <small>Vulkan</small></a></li><li><a href="/LycTechStack.github.io/2022/07/16/20220716-Vulkan-Vulkan%E5%AF%B9%E8%B1%A1%E6%80%BB%E7%BB%93/">【Vulkan】常用组件总结 <small>Vulkan</small></a></li><li><a href="/LycTechStack.github.io/2022/07/13/20220713-Piccolo-%E6%B8%B2%E6%9F%93%E7%B3%BB%E7%BB%9F%EF%BC%88%E4%BA%8C%EF%BC%89%E6%B8%B2%E6%9F%93%E8%B7%AF%E5%BE%84%E7%9A%84%E5%AE%9E%E7%8E%B0/">【Piccolo代码解读】渲染系统（二）渲染路径的实现 <small>Piccolo引擎代码解读</small></a></li><li><a href="/LycTechStack.github.io/2022/07/04/20220704-GameEngine-%E6%B8%B8%E6%88%8F%E5%BC%95%E6%93%8E%E4%B8%AD%E7%9A%84%E7%89%A9%E7%90%86%E7%B3%BB%E7%BB%9F/">【游戏引擎】（四）游戏引擎中的物理系统 <small>游戏引擎</small></a></li><li><a href="/LycTechStack.github.io/2022/07/03/20220703-GPU%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/">GPU架构深度解析 <small>知识汇总</small></a></li><li><a href="/LycTechStack.github.io/2022/07/03/20220703-GameEngine-%E6%B8%B8%E6%88%8F%E5%BC%95%E6%93%8E%E4%B8%AD%E7%9A%84%E5%8A%A8%E7%94%BB%E7%B3%BB%E7%BB%9F/">【游戏引擎】（三）游戏引擎中的动画系统 <small>游戏引擎</small></a></li><li><a href="/LycTechStack.github.io/2022/07/02/20220702-%E7%9F%A5%E8%AF%86%E6%B1%87%E6%80%BB-%E5%9B%BE%E5%BD%A2%E5%AD%A6%E9%83%A8%E5%88%86/">【知识汇总】图形学和API相关 <small>知识汇总</small></a></li><li><a href="/LycTechStack.github.io/2022/06/28/20220628-%E7%9F%A5%E8%AF%86%E6%B1%87%E6%80%BB-3D%E6%95%B0%E5%AD%A6%E9%83%A8%E5%88%86/">【知识汇总】数学相关 <small>知识汇总</small></a></li><li><a href="/LycTechStack.github.io/2022/06/25/20220626-%E7%9F%A5%E8%AF%86%E6%B1%87%E6%80%BB-C++%E9%83%A8%E5%88%86/">【知识汇总】C++相关 <small>知识汇总</small></a></li><li><a href="/LycTechStack.github.io/2022/06/18/20220618-Pilot-%E6%B8%B2%E6%9F%93%E7%B3%BB%E7%BB%9F%EF%BC%88%E4%B8%80%EF%BC%89%E6%B8%B2%E6%9F%93%E6%B5%81%E7%A8%8B/">【Piccolo代码解读】渲染系统（一）渲染流程 <small>Piccolo引擎代码解读</small></a></li><li><a href="/LycTechStack.github.io/2022/06/17/20220617-Pilot-%E6%95%B4%E4%BD%93%E6%A1%86%E6%9E%B6%E4%B8%8E%E4%BB%A3%E7%A0%81%E5%8F%8D%E5%B0%84/">【Piccolo代码解读】整体框架与反射机制 <small>Piccolo引擎代码解读</small></a></li><li><a href="/LycTechStack.github.io/2022/06/09/20220609-GAMES202-%E5%AE%9E%E6%97%B6%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA/">【高质量实时渲染】实时光线追踪 <small>高质量实时渲染</small></a></li><li><a href="/LycTechStack.github.io/2022/06/08/20220608-GAMES202-%E5%AE%9E%E6%97%B6PBR%E6%9D%90%E8%B4%A8/">【高质量实时渲染】实时PBR材质 <small>高质量实时渲染</small></a></li><li><a href="/LycTechStack.github.io/2022/06/05/20220605-GAMES202-%E5%AE%9E%E6%97%B6%E5%85%A8%E5%B1%80%E5%85%89%E7%85%A7/">【高质量实时渲染】实时全局光照 <small>高质量实时渲染</small></a></li><li><a href="/LycTechStack.github.io/2022/06/02/20220602-GAMES202-%E5%AE%9E%E6%97%B6%E7%8E%AF%E5%A2%83%E5%85%89%E7%85%A7/">【高质量实时渲染】实时环境光照 <small>高质量实时渲染</small></a></li><li><a href="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/">【高质量实时渲染】实时阴影 <small>高质量实时渲染</small></a></li><li><a href="/LycTechStack.github.io/2022/05/26/20220526-GameEngine-%E6%B8%B8%E6%88%8F%E5%BC%95%E6%93%8E%E4%B8%AD%E7%9A%84%E6%B8%B2%E6%9F%93%E7%B3%BB%E7%BB%9F/">【游戏引擎】（二）游戏引擎中的渲染系统 <small>游戏引擎</small></a></li><li><a href="/LycTechStack.github.io/2022/05/25/20220525-%E9%80%8F%E8%A7%86%E6%8F%92%E5%80%BC%E6%A0%A1%E6%AD%A3/">关于透视插值校正 <small></small></a></li><li><a href="/LycTechStack.github.io/2022/05/25/20220525-%E6%B8%B2%E6%9F%93%E5%99%A8-%E6%94%B9%E8%BF%9B%E5%85%89%E6%A0%85%E5%8C%96/">【光栅化渲染器】（九）改进光栅化 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/25/20220525-%E6%B8%B2%E6%9F%93%E5%99%A8-%E5%85%89%E6%BA%90/">【光栅化渲染器】（八）光源 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/24/20220524-%E6%B8%B2%E6%9F%93%E5%99%A8-%E5%8A%A0%E8%BD%BD%E6%A8%A1%E5%9E%8B/">【光栅化渲染器】（七）加载模型 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/24/20220524-%E6%B8%B2%E6%9F%93%E5%99%A8-%E5%89%94%E9%99%A4%E4%B8%8E%E8%A3%81%E5%89%AA/">【光栅化渲染器】（六）剔除与裁剪 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/23/20220523-%E6%B8%B2%E6%9F%93%E5%99%A8-%E7%9B%B8%E6%9C%BA/">【光栅化渲染器】（五）相机 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/22/20220522-%E6%B8%B2%E6%9F%93%E5%99%A8-%E7%BA%B9%E7%90%86/">【光栅化渲染器】（四）纹理 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/21/20220521-%E6%B8%B2%E6%9F%93%E5%99%A8-%E5%8F%98%E6%8D%A2%E4%B8%8E%E6%B7%B1%E5%BA%A6%E6%B5%8B%E8%AF%95/">【光栅化渲染器】（三）变换与深度测试 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/20/20220520-%E6%B8%B2%E6%9F%93%E5%99%A8-%E6%A1%86%E6%9E%B6%E6%90%AD%E5%BB%BA/">【光栅化渲染器】（二）框架搭建 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/19/20220519-%E6%B8%B2%E6%9F%93%E5%99%A8-%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE/">【光栅化渲染器】（一）环境配置 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/18/20220518-RTR-%E6%B8%B2%E6%9F%93%E5%8A%A0%E9%80%9F%E6%8A%80%E6%9C%AF%E6%80%BB%E7%BB%93/">【Real-Time Rendering】渲染加速技术总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/18/20220518-RTR-%E9%9D%9E%E7%9C%9F%E5%AE%9E%E6%84%9F%E6%B8%B2%E6%9F%93%E6%8A%80%E6%9C%AF%E6%80%BB%E7%BB%93/">【Real-Time Rendering】非真实感渲染总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/18/20220518-RTR-%E5%9F%BA%E4%BA%8E%E5%9B%BE%E5%83%8F%E7%9A%84%E6%B8%B2%E6%9F%93%E6%8A%80%E6%9C%AF%E6%80%BB%E7%BB%93/">【Real-Time Rendering】基于图像的渲染技术总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/18/20220518-RTR-%E5%85%A8%E5%B1%80%E5%85%89%E7%85%A7%E6%80%BB%E7%BB%93/">【Real-Time Rendering】全局光照总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/">【Real-Time Rendering】延迟渲染总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/16/20220516-RTR-BRDF%E6%80%BB%E7%BB%93/">【Real-Time Rendering】BRDF总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/15/20220515-RTR-%E7%A8%8B%E5%BA%8F%E5%99%AA%E5%A3%B0%E6%80%BB%E7%BB%93/">【Real-Time Rendering】程序噪声总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/15/20220515-RTR-%E7%BA%B9%E7%90%86%E6%80%BB%E7%BB%93/">【Real-Time Rendering】纹理总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/14/20220514-RTR-%E6%A8%A1%E6%9D%BF%E6%B5%8B%E8%AF%95%E5%92%8C%E6%B7%B1%E5%BA%A6%E6%B5%8B%E8%AF%95/">【Real-Time Rendering】模板测试和深度测试 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/13/20220513-RTR-%E5%9B%BE%E5%BD%A2%E6%B8%B2%E6%9F%93%E5%92%8C%E8%A7%86%E8%A7%89%E5%A4%96%E8%A7%82/">【Real-Time Rendering】图形渲染和视觉处理 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/13/20220513-RTR-GPU%E7%AE%A1%E7%BA%BF/">【Real-Time Rendering】GPU管线 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/12/20220512-RTR-%E5%9B%BE%E5%BD%A2%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF/">【Real-Time Rendering】图形渲染管线 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/11/20220511-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B-%E6%A8%A1%E6%9D%BF%E5%92%8CRTTI/">【C++对象模型】（七）模板和RTTI <small>深度探索C++对象模型</small></a></li><li><a href="/LycTechStack.github.io/2022/05/11/20220511-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B-%E5%85%B3%E4%BA%8E%E6%89%A7%E8%A1%8C%E6%9C%9F/">【C++对象模型】（六）关于执行期 <small>深度探索C++对象模型</small></a></li><li><a href="/LycTechStack.github.io/2022/05/09/20220509-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B-%E5%AF%B9%E8%B1%A1%E5%A4%8D%E5%88%B6%E5%92%8C%E6%9E%90%E6%9E%84/">【C++对象模型】（五）对象复制和析构 <small>深度探索C++对象模型</small></a></li><li><a href="/LycTechStack.github.io/2022/05/09/20220509-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B-%E5%85%B3%E4%BA%8E%E5%87%BD%E6%95%B0%E6%88%90%E5%91%98/">【C++对象模型】（四）关于函数成员 <small>深度探索C++对象模型</small></a></li><li><a href="/LycTechStack.github.io/2022/05/07/20220507-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B-%E5%85%B3%E4%BA%8E%E6%95%B0%E6%8D%AE%E6%88%90%E5%91%98/">【C++对象模型】（三）关于数据成员 <small>深度探索C++对象模型</small></a></li><li><a href="/LycTechStack.github.io/2022/05/06/20220506-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B-%E5%85%B3%E4%BA%8E%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0/">【C++对象模型】（二）关于构造函数 <small>深度探索C++对象模型</small></a></li><li><a href="/LycTechStack.github.io/2022/05/05/20220505-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B-%E5%85%B3%E4%BA%8E%E5%AF%B9%E8%B1%A1/">【C++对象模型】（一）关于对象 <small>深度探索C++对象模型</small></a></li><li><a href="/LycTechStack.github.io/2022/05/03/20220503-STL-%E5%85%B3%E8%81%94%E5%BC%8F%E5%AE%B9%E5%99%A8/">【STL】关联式容器 <small>STL</small></a></li><li><a href="/LycTechStack.github.io/2022/04/30/20220430-STL-%E5%BA%8F%E5%88%97%E5%BC%8F%E5%AE%B9%E5%99%A8/">【STL】序列式容器 <small>STL</small></a></li><li><a href="/LycTechStack.github.io/2022/04/30/20220430-STL-%E8%BF%AD%E4%BB%A3%E5%99%A8/">【STL】迭代器 <small>STL</small></a></li><li><a href="/LycTechStack.github.io/2022/04/28/20220428-GameEngine-%E6%B8%B8%E6%88%8F%E5%BC%95%E6%93%8E%E6%9E%B6%E6%9E%84/">【游戏引擎】（一）游戏引擎架构 <small>游戏引擎</small></a></li><li><a href="/LycTechStack.github.io/2022/04/27/20220427-RayTracer-%E6%9C%80%E5%90%8E%E4%B8%80%E6%AD%A5/">【RayTracer】（二十二）最后一步 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/26/20220426-RayTracer-%E6%B7%B7%E5%90%88%E6%A6%82%E7%8E%87%E5%AF%86%E5%BA%A6/">【RayTracer】（二十一）混合概率密度 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/26/20220426-RayTracer-%E7%9B%B4%E6%8E%A5%E5%AF%B9%E5%85%89%E6%BA%90%E9%87%87%E6%A0%B7/">【RayTracer】（二十）直接对光源采样 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/24/20220424-RayTracer-%E9%9A%8F%E6%9C%BA%E6%96%B9%E5%90%91/">【RayTracer】（十九）随机方向 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/24/20220424-RayTracer-%E9%87%8D%E8%A6%81%E6%80%A7%E9%87%87%E6%A0%B7/">【RayTracer】（十八）重要性采样 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/22/20220422-RayTracer-%E6%96%B0%E7%89%B9%E6%80%A7%E6%9C%80%E7%BB%88%E5%9C%BA%E6%99%AF/">【RayTracer】（十七）新特性最终场景 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/22/20220422-RayTracer-%E5%8F%82%E4%B8%8E%E4%BB%8B%E8%B4%A8/">【RayTracer】（十六）参与介质 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/22/20220422-RayTracer-%E7%AB%8B%E6%96%B9%E4%BD%93%E5%92%8C%E5%8F%98%E6%8D%A2/">【RayTracer】（十五）立方体和变换 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/22/20220422-RayTracer-%E5%85%89%E6%BA%90/">【RayTracer】（十四）光源 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/22/20220422-%E8%83%8C%E5%8C%85%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/">【动态规划】（七）背包动态规划 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/04/21/20220421-RayTracer-%E5%9B%BE%E7%89%87%E7%BA%B9%E7%90%86/">【RayTracer】（十三）图片纹理 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/19/20220419-RayTracer-Perlin%E5%99%AA%E5%A3%B0/">【RayTracer】（十二）Perlin噪声 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/18/20220418-RayTracer-%E7%BA%B9%E7%90%86/">【RayTracer】（十一）纹理 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/18/20220418-RayTracer-%E5%AE%9E%E7%8E%B0BVH/">【RayTracer】（十）实现BVH <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/17/20220417-RayTracer-%E8%BF%90%E5%8A%A8%E6%A8%A1%E7%B3%8A/">【RayTracer】（九）运动模糊 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/16/20220416-RayTracer-%E6%9E%84%E5%BB%BA%E9%9A%8F%E6%9C%BA%E5%9C%BA%E6%99%AF/">【RayTracer】（八）构建随机场景 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/16/20220416-RayTracer-%E6%94%B9%E8%BF%9B%E7%9B%B8%E6%9C%BA/">【RayTracer】（七）景深效果 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/16/20220416-RayTracer-%E7%94%B5%E4%BB%8B%E8%B4%A8/">【RayTracer】（六）电介质 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/16/20220416-RayTracer-%E9%87%91%E5%B1%9E%E6%9D%90%E8%B4%A8/">【RayTracer】（五）金属材质 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/15/20220415-RayTracer-%E6%BC%AB%E5%8F%8D%E5%B0%84%E6%9D%90%E8%B4%A8/">【RayTracer】（四）漫反射材质 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/15/20220415-RayTracer-%E7%9B%B8%E6%9C%BA%E7%B1%BB%E5%92%8C%E5%8F%8D%E8%B5%B0%E6%A0%B7/">【RayTracer】（三）相机类和反走样 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/15/20220415-RayTracer-%E7%89%A9%E4%BD%93%E7%B1%BB/">【RayTracer】（二）实现物体类 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/13/20220413-%E6%8E%92%E5%BA%8F%E7%AE%97%E6%B3%95/">【算法】排序算法 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/04/11/20220411-RayTracer-%E5%9F%BA%E6%9C%AC%E5%B7%A5%E5%85%B7%E7%B1%BB/">【RayTracer】（一）实现基本工具类 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/10/20220410-Shader-%E5%99%AA%E5%A3%B0%E7%BA%B9%E7%90%86/">【Unity Shader】（十）噪声纹理 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/09/20220409-Shader-%E9%9D%9E%E7%9C%9F%E5%AE%9E%E6%84%9F%E6%B8%B2%E6%9F%93/">【Unity Shader】（九）非真实感渲染 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/09/20220409-Shader-%E9%AB%98%E7%BA%A7%E5%B1%8F%E5%B9%95%E7%89%B9%E6%95%88/">【Unity Shader】（八）高级屏幕特效 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/07/20220407-Shader-%E5%9F%BA%E7%A1%80%E5%B1%8F%E5%B9%95%E7%89%B9%E6%95%88/">【Unity Shader】（七）基础屏幕特效 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/07/20220407-Shader-%E5%8A%A8%E7%94%BB/">【Unity Shader】（六）动画 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/07/20220407-Shader-%E9%AB%98%E7%BA%A7%E7%BA%B9%E7%90%86/">【Unity Shader】（五）高级纹理 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/06/20220406-%E4%BC%98%E5%85%88%E9%98%9F%E5%88%97%E5%92%8C%E5%A0%86/">【数据结构】优先队列和堆 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/04/05/20220405-%E8%B4%AA%E5%BF%83%E7%AE%97%E6%B3%95/">【算法】贪心算法 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/04/04/20220404-Shader-%E9%98%B4%E5%BD%B1%E5%92%8C%E8%A1%B0%E5%87%8F/">【Unity Shader】（四）阴影和衰减 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/03/20220403-Shader-%E9%80%8F%E6%98%8E%E6%95%88%E6%9E%9C/">【Unity Shader】（三）透明效果 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/03/20220403-Shader-%E5%9F%BA%E7%A1%80%E7%BA%B9%E7%90%86/">【Unity Shader】（二）基础纹理 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/02/20220402-Shader-%E5%9F%BA%E7%A1%80%E5%85%89%E7%85%A7/">【Unity Shader】（一）基础光照 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/03/28/20220328-%E4%BA%8C%E5%88%86%E6%9F%A5%E6%89%BE/">【算法】二分查找 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/25/20220325-%E5%8C%BA%E9%97%B4%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/">【动态规划】（六）区间动态规划 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/24/20220324-%E6%B8%B2%E6%9F%93%E5%92%8C%E6%9D%90%E8%B4%A8%E5%89%8D%E6%B2%BF/">【计算机图形学】（十五）高级渲染和材质概述 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/24/20220324-%E6%9D%90%E8%B4%A8/">【计算机图形学】（十四）材质 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/">【计算机图形学】（十三）路径追踪 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/19/20220319-%E5%89%8D%E7%BC%80%E5%92%8C/">【动态规划】（五）前缀和 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/18/20220318-%E8%BE%90%E5%B0%84%E5%BA%A6%E9%87%8F%E5%AD%A6/">【计算机图形学】（十二）辐射度量学基础 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/17/20220317-Whitted%E9%A3%8E%E6%A0%BC%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA/">【计算机图形学】（十一）Whitted 风格光线追踪 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/15/20220315-%E7%BA%BF%E6%80%A7%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92-%E7%9F%A9%E9%98%B5%E5%92%8C%E6%97%A0%E4%B8%B2/">【动态规划】（四）线性动态规划之矩阵和无串问题 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/13/20220313-%E9%98%B4%E5%BD%B1/">【计算机图形学】（十）阴影 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/13/20220313-%E5%87%A0%E4%BD%95/">【计算机图形学】（九）几何 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/12/20220312-%E7%BA%BF%E6%80%A7%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92-%E5%8F%8C%E4%B8%B2/">【动态规划】（三）线性动态规划之双串问题 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/10/20220310-%E5%9B%BE%E5%BD%A2%E7%AE%A1%E7%BA%BF/">【计算机图形学】（八）图形管线 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/10/20220310-%E7%BA%B9%E7%90%86%E6%98%A0%E5%B0%84/">【计算机图形学】（七）纹理映射 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/10/20220310-%E7%BA%BF%E6%80%A7%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92-%E5%B8%A6%E7%BB%B4%E5%BA%A6%E5%8D%95%E4%B8%B2/">【动态规划】（二）线性动态规划之带维度单串问题 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/09/20220309-%E7%9D%80%E8%89%B2/">【计算机图形学】（六）着色 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/08/20220308-%E6%B7%B1%E5%BA%A6%E7%BC%93%E5%86%B2/">【计算机图形学】（五）深度缓冲 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/07/20220307-%E7%BA%BF%E6%80%A7%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92-%E5%8D%95%E4%B8%B2/">【动态规划】（一）线性动态规划之单串问题 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/06/20220306-%E5%8F%8D%E8%B5%B0%E6%A0%B7/">【计算机图形学】（四）反走样 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/">【计算机图形学】（三）光栅化 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/03/20220303-%E4%BA%8C%E5%8F%89%E6%A0%91/">【数据结构】二叉树 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/03/20200303-%E6%97%8B%E8%BD%AC%E4%B8%8E%E5%9B%9B%E5%85%83%E6%95%B0/">【计算机图形学】（二）旋转与四元数 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/02/20200302-%E5%8F%98%E6%8D%A2/">【计算机图形学】（一）变换 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/02/20220303-%E7%BA%BF%E6%80%A7%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/">【数据结构】线性数据结构 <small>数据结构与算法</small></a></li></ul></dialog>
+  <footer class="site-footer"><div class="wrap footer-inner">
+    <div class="footer-brand"><img src="/LycTechStack.github.io/images/journal/mark.svg" alt="" width="24" height="24"><strong>LycTechStack</strong><span>© 2021–2026 Lyc</span></div>
+    <div class="footer-links">
+      <a href="mailto:27487358@qq.com">联系作者</a>
+      <a href="/LycTechStack.github.io/atom.xml"><svg class="icon" width="14" height="14" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#rss"/></svg> RSS</a>
+      <a href="#top">返回顶部 ↑</a>
+    </div>
+  </div>
+  <div class="wrap footer-counts">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+  <span id="busuanzi_container_site_uv" style="display:none">访客 <span id="busuanzi_value_site_uv"></span></span>
+  <span id="busuanzi_container_site_pv" style="display:none">浏览 <span id="busuanzi_value_site_pv"></span></span>
 
+</div>
+  </footer>
+  
+    <dialog class="search-dialog" aria-labelledby="search-title" data-index="/LycTechStack.github.io/search.xml">
+  <div class="dialog-head"><h2 id="search-title">搜索笔记</h2><form method="dialog"><button class="icon-button" aria-label="关闭搜索"><svg class="icon" width="18" height="18" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#close"/></svg></button></form></div>
+  <label class="search-field"><svg class="icon" width="20" height="20" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#search"/></svg><input type="search" aria-label="搜索标题、标签或正文" placeholder="输入标题、标签或正文关键词…" autocomplete="off" spellcheck="false"></label>
+  <div class="search-suggestions"><p>常用标签</p><div class="tag-cloud"><button type="button" data-query="计算机图形学"># 计算机图形学</button><button type="button" data-query="C++"># C++</button><button type="button" data-query="实时渲染"># 实时渲染</button><button type="button" data-query="光线追踪"># 光线追踪</button><button type="button" data-query="游戏引擎"># 游戏引擎</button><button type="button" data-query="设计模式"># 设计模式</button></div></div>
+  <p class="search-status" role="status"></p><ol class="search-results"></ol>
+</dialog>
+
+    <script defer src="/LycTechStack.github.io/js/journal-search.js"></script>
+  
+  
+    
+<script src="/LycTechStack.github.io/js/utils.js"></script>
+
+  
+  
+  
 
   
       
@@ -241,4 +422,5 @@
 
     
 
-</body></html>
+</body>
+</html>

@@ -1,55 +1,149 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>【高质量实时渲染】实时阴影 · LycTechStack</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a1017">
+  <meta name="generator" content="Hexo 5.4.1">
+  <title>【高质量实时渲染】实时阴影 | LycTechStack</title>
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"lychen328.github.io","root":"/LycTechStack.github.io/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":true,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":true,"nav":null,"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":5,"unescape":false,"preload":false},"motion":{"enable":false,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+  <meta name="description" content="阴影是渲染中极其重要的一部分，好的阴影能够大幅提升画面表现力，离线渲染中的各种阴影生成算法或者光线追踪算法都能够做到非常精细和逼真的阴影，但在游戏等实时渲染中，对帧率要求很高的情况下如何以最低的代价生成高质量的阴影就是一个难题。这一节将对实时渲染中的阴影相关的算法原理进行总结。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【高质量实时渲染】实时阴影">
+<meta property="og:url" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/index.html">
+<meta property="og:site_name" content="LycTechStack">
+<meta property="og:description" content="阴影是渲染中极其重要的一部分，好的阴影能够大幅提升画面表现力，离线渲染中的各种阴影生成算法或者光线追踪算法都能够做到非常精细和逼真的阴影，但在游戏等实时渲染中，对帧率要求很高的情况下如何以最低的代价生成高质量的阴影就是一个难题。这一节将对实时渲染中的阴影相关的算法原理进行总结。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530152415189.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530152854014.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530153029862.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530153303843.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530145535937.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530145805637.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530150153504.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530150232576.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530150705056.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530151628306.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530154335327.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530154413210.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530155053026.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530155441750.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530160458278.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530160930593.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530162415880.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530174618341.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530170245397.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530170818733.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530171327752.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530171632090.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530171726482.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530173458126.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530175426796.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530175756313.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530175829567.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530180032457.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530180617122.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220601142044408.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220601142307684.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220601142714292.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220601143236308.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/2022-06-01144018.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220601144718966.png">
+<meta property="article:published_time" content="2022-05-30T12:49:23.000Z">
+<meta property="article:modified_time" content="2026-11-19T07:12:48.287Z">
+<meta property="article:author" content="Lyc">
+<meta property="article:tag" content="计算机图形学">
+<meta property="article:tag" content="游戏引擎">
+<meta property="article:tag" content="实时渲染">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530152415189.png">
   <link rel="canonical" href="https://lychen328.github.io/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/">
-  <link rel="alternate" type="application/atom+xml" href="/LycTechStack.github.io/atom.xml">
-  <script>try { const mode = localStorage.getItem('studio-appearance'); if (mode) document.documentElement.dataset.mode = mode; } catch {}</script>
-  <link rel="stylesheet" href="/LycTechStack.github.io/studio/studio.css">
-  <script defer src="/LycTechStack.github.io/studio/studio.js"></script>
-  <script defer src="/LycTechStack.github.io/studio/stars.js?v=2"></script>
+  <link rel="icon" href="/LycTechStack.github.io/images/journal/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/LycTechStack.github.io/css/journal.css">
+  
+  
+
+
+
+
+
+
+  <script defer src="/LycTechStack.github.io/js/journal.js"></script>
+  
+<link rel="alternate" href="/LycTechStack.github.io/atom.xml" title="LycTechStack" type="application/atom+xml">
 </head>
-<body>
-<a class="skip" href="#main">跳到正文</a>
-<header class="mast"><div class="mast-inner">
-  <a class="brand" href="/LycTechStack.github.io/"><span class="brand-icon" aria-hidden="true">✴︎</span>LycTechStack</a>
-  <nav aria-label="主导航">
-    <a  href="/LycTechStack.github.io/">首页</a>
-    <a  href="/LycTechStack.github.io/archives/">文章目录</a>
-    <a  href="/LycTechStack.github.io/categories/">专题</a>
-  </nav>
-  <div class="actions">
-    <button type="button" data-search aria-label="搜索文章"><i class="glass"></i></button>
-    <button type="button" data-mode aria-label="切换明暗模式"><i class="mode-icon"></i></button>
+<body id="top">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="world-grid" aria-hidden="true"></div>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="wordmark" href="/LycTechStack.github.io/" rel="home"><img src="/LycTechStack.github.io/images/journal/mark.svg" alt="" width="33" height="33">LycTechStack</a>
+      <nav class="primary-nav" id="primary-nav" aria-label="主导航">
+        
+          
+          <a href="/LycTechStack.github.io/">首页</a>
+        
+          
+          <a href="/LycTechStack.github.io/archives/">归档</a>
+        
+          
+          <a href="/LycTechStack.github.io/categories/">分类</a>
+        
+          
+          <a href="/LycTechStack.github.io/tags/">标签</a>
+        
+          
+          <a href="/LycTechStack.github.io/about/">关于</a>
+        
+      </nav>
+      <div class="header-tools">
+        <button class="search-trigger js-only" type="button" aria-label="搜索文章" aria-haspopup="dialog"><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#search"/></svg><span>搜索</span><kbd>/</kbd></button>
+        <a class="github-link" href="https://github.com/LYChen328/" aria-label="Lyc 的 GitHub" target="_blank" rel="noopener"><svg class="icon" width="19" height="19" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#github"/></svg></a>
+        <button class="menu-toggle js-only" type="button" aria-label="展开导航" aria-expanded="false" aria-controls="primary-nav"><svg class="icon" width="22" height="22" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#menu"/></svg></button>
+      </div>
+    </div>
+    <div class="reading-progress" aria-hidden="true"></div>
+  </header>
+  <main id="main" tabindex="-1">
+<div class="wrap inner-page post-page">
+  <div class="breadcrumbs"><a href="/LycTechStack.github.io/">首页</a><span>/</span><a href="/LycTechStack.github.io/archives/">归档</a>
+    <span>/</span><a href="/LycTechStack.github.io/categories/%E9%AB%98%E8%B4%A8%E9%87%8F%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93/">高质量实时渲染</a>
   </div>
-</div></header>
-<main id="main">
-<header class="sky article-hero">
-  <canvas class="starfield" aria-hidden="true"></canvas>
-  <div class="hero-copy"><p class="sky-kicker"><a href="/LycTechStack.github.io/categories/%E9%AB%98%E8%B4%A8%E9%87%8F%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93/">高质量实时渲染</a> </p>
-    <h1>【高质量实时渲染】实时阴影</h1>
-    <p class="deck">Lyc　·　<time>2022 年 5 月 30 日</time>　·　9 分钟</p>
-  </div><div class="sky-foot"><a href="#reading">开始阅读 ↓</a><button class="motion" type="button" data-motion aria-label="暂停星空动画" aria-pressed="false" title="暂停星空动画"><span aria-hidden="true">Ⅱ</span></button>
-</div>
-</header>
-<div class="reading" id="reading">
-  <canvas class="starfield margin-stars" aria-hidden="true"></canvas>
-  <div class="reader wrap">
-    <aside><details class="outline" open><summary>本篇目录</summary><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E5%86%8D%E8%B0%88-Shadow-Map"><span class="toc-text">1 再谈 Shadow Map</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-1-Shadow-Map-%E8%83%8C%E5%90%8E%E7%9A%84%E6%95%B0%E5%AD%A6%E5%8E%9F%E7%90%86"><span class="toc-text">1.1 Shadow Map 背后的数学原理</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#1-2-Shadow-Map-%E7%9A%84%E9%97%AE%E9%A2%98"><span class="toc-text">1.2 Shadow Map 的问题</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-Percentage-Closer-Filtering%EF%BC%88PCF%EF%BC%89"><span class="toc-text">2 Percentage Closer Filtering（PCF）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-Percentage-Closer-Soft-Shadows%EF%BC%88PCSS%EF%BC%89"><span class="toc-text">3 Percentage Closer Soft Shadows（PCSS）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-Variance-Soft-Shadow-Mapping%EF%BC%88VSM%EF%BC%89"><span class="toc-text">4 Variance Soft Shadow Mapping（VSM）</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#4-1-PCSS-%E7%9A%84%E9%97%AE%E9%A2%98"><span class="toc-text">4.1 PCSS 的问题</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-2-%E5%8C%BA%E5%9F%9F%E6%9F%A5%E8%AF%A2%E6%96%B9%E6%B3%95"><span class="toc-text">4.2 区域查询方法</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-3-VSM-%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="toc-text">4.3 VSM 的实现</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-4-VSM-%E7%9A%84%E4%BC%98%E7%BC%BA%E7%82%B9"><span class="toc-text">4.4 VSM 的优缺点</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-Moment-Shadow-Mapping%EF%BC%88MSM%EF%BC%89"><span class="toc-text">5 Moment Shadow Mapping（MSM）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-Distance-Field-Soft-Shadows"><span class="toc-text">6 Distance Field Soft Shadows</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#6-1-%E8%B7%9D%E7%A6%BB%E5%9C%BA%E7%9A%84%E7%94%A8%E9%80%94"><span class="toc-text">6.1 距离场的用途</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#6-2-%E5%9F%BA%E4%BA%8E%E8%B7%9D%E7%A6%BB%E5%9C%BA%E7%9A%84%E8%BD%AF%E9%98%B4%E5%BD%B1"><span class="toc-text">6.2 基于距离场的软阴影</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#6-3-%E8%B7%9D%E7%A6%BB%E5%9C%BA%E7%9A%84%E4%BC%98%E7%BC%BA%E7%82%B9"><span class="toc-text">6.3 距离场的优缺点</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7-Cascaded-Shadow-Maps%EF%BC%88CSM%EF%BC%89"><span class="toc-text">7 Cascaded Shadow Maps（CSM）</span></a></li></ol></details></aside>
-    <article class="prose"><p>阴影是渲染中极其重要的一部分，好的阴影能够大幅提升画面表现力，离线渲染中的各种阴影生成算法或者光线追踪算法都能够做到非常精细和逼真的阴影，但在游戏等实时渲染中，对帧率要求很高的情况下如何以最低的代价生成高质量的阴影就是一个难题。这一节将对实时渲染中的阴影相关的算法原理进行总结。</p>
+  <article itemscope itemtype="https://schema.org/BlogPosting">
+    <header class="article-heading">
+      
+      <p class="kicker article-series">高质量实时渲染</p>
+      <h1 class="page-title" itemprop="headline">实时阴影</h1>
+      <div class="article-meta"><span itemprop="author">Lyc</span><i></i>
+        <time datetime="2022-05-30T12:49:23.000Z" itemprop="datePublished">2022-05-30</time>
+        <i></i><span>9.4k 字</span>
+        <i></i><span><svg class="icon" width="14" height="14" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#clock"/></svg>约 9 分钟</span>
+        <span id="busuanzi_container_page_pv" style="display:none"><span id="busuanzi_value_page_pv"></span> 次阅读</span>
+      </div>
+    </header>
+    
+    <div class="article-layout">
+      <aside class="toc-panel"><details open><summary><svg class="icon" width="17" height="17" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#toc"/></svg>文章目录 <svg class="icon" width="15" height="15" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#chevron"/></svg></summary><nav aria-label="文章目录"><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E5%86%8D%E8%B0%88-Shadow-Map"><span class="toc-text">1 再谈 Shadow Map</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-1-Shadow-Map-%E8%83%8C%E5%90%8E%E7%9A%84%E6%95%B0%E5%AD%A6%E5%8E%9F%E7%90%86"><span class="toc-text">1.1 Shadow Map 背后的数学原理</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#1-2-Shadow-Map-%E7%9A%84%E9%97%AE%E9%A2%98"><span class="toc-text">1.2 Shadow Map 的问题</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-Percentage-Closer-Filtering%EF%BC%88PCF%EF%BC%89"><span class="toc-text">2 Percentage Closer Filtering（PCF）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-Percentage-Closer-Soft-Shadows%EF%BC%88PCSS%EF%BC%89"><span class="toc-text">3 Percentage Closer Soft Shadows（PCSS）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-Variance-Soft-Shadow-Mapping%EF%BC%88VSM%EF%BC%89"><span class="toc-text">4 Variance Soft Shadow Mapping（VSM）</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#4-1-PCSS-%E7%9A%84%E9%97%AE%E9%A2%98"><span class="toc-text">4.1 PCSS 的问题</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-2-%E5%8C%BA%E5%9F%9F%E6%9F%A5%E8%AF%A2%E6%96%B9%E6%B3%95"><span class="toc-text">4.2 区域查询方法</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-3-VSM-%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="toc-text">4.3 VSM 的实现</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-4-VSM-%E7%9A%84%E4%BC%98%E7%BC%BA%E7%82%B9"><span class="toc-text">4.4 VSM 的优缺点</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-Moment-Shadow-Mapping%EF%BC%88MSM%EF%BC%89"><span class="toc-text">5 Moment Shadow Mapping（MSM）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-Distance-Field-Soft-Shadows"><span class="toc-text">6 Distance Field Soft Shadows</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#6-1-%E8%B7%9D%E7%A6%BB%E5%9C%BA%E7%9A%84%E7%94%A8%E9%80%94"><span class="toc-text">6.1 距离场的用途</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#6-2-%E5%9F%BA%E4%BA%8E%E8%B7%9D%E7%A6%BB%E5%9C%BA%E7%9A%84%E8%BD%AF%E9%98%B4%E5%BD%B1"><span class="toc-text">6.2 基于距离场的软阴影</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#6-3-%E8%B7%9D%E7%A6%BB%E5%9C%BA%E7%9A%84%E4%BC%98%E7%BC%BA%E7%82%B9"><span class="toc-text">6.3 距离场的优缺点</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7-Cascaded-Shadow-Maps%EF%BC%88CSM%EF%BC%89"><span class="toc-text">7 Cascaded Shadow Maps（CSM）</span></a></li></ol></nav></details></aside>
+      <div class="article-column">
+        <div class="prose post-body" itemprop="articleBody">
+          
+          <p>阴影是渲染中极其重要的一部分，好的阴影能够大幅提升画面表现力，离线渲染中的各种阴影生成算法或者光线追踪算法都能够做到非常精细和逼真的阴影，但在游戏等实时渲染中，对帧率要求很高的情况下如何以最低的代价生成高质量的阴影就是一个难题。这一节将对实时渲染中的阴影相关的算法原理进行总结。</p>
 <p><em><span id="more"></span></em></p>
 <h3 id="1-再谈-Shadow-Map"><a href="#1-再谈-Shadow-Map" class="headerlink" title="1 再谈 Shadow Map"></a>1 再谈 Shadow Map</h3><h4 id="1-1-Shadow-Map-背后的数学原理"><a href="#1-1-Shadow-Map-背后的数学原理" class="headerlink" title="1.1 Shadow Map 背后的数学原理"></a>1.1 Shadow Map 背后的数学原理</h4><p>关于 Shadow Map，我们在之前已经了解过，原理非常简单，首先从光源的视角看向整个场景生成一张深度图，然后再从真正的相机视角渲染场景，并对每一个着色点计算其到光源的距离，和深度图中的距离作比较，就可以判断该着色点和光源中间是否有遮挡物，从而产生阴影。整个过程可以查看之前的笔记<a href="https://lychen328.github.io/LycTechStack.github.io/2022/03/13/20220313-%E9%98%B4%E5%BD%B1/">【计算机图形学】（十）阴影</a>。</p>
 <p>那么 Shadow Map 为什么可以这么做，可以利用数学知识简单的进行解释，同时了解实时渲染中的优化方向。</p>
 <p>首先是在实时渲染领域非常重要的一个思想，那就是只要看起来是对的，那么它就是对的。也就是说我们不需要精确地计算出结果，只要能够得到结果的正确近似，使最终的渲染效果看起来正确就足够了。因此在实时渲染中会用到各种近似的方法，后面就可以看到，这里先熟悉一个实时渲染中经常用到的近似等式：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530152415189.png" alt="image-20220530152415189"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530152415189.png" alt="image-20220530152415189" loading="lazy"></p>
 <p>也就是把两个函数乘积的积分近似转化为两个函数积分的乘积，其中分母是一个缩放因子，为了将积分的乘积缩小到和原积分同样的大小，可以通过一个例子来理解：比如 $f(x)$ 是一个常量函数，函数值恒为 2，积分区间是一个长度为 3 的一维区间，那么原积分相当于两倍的 $g(x)$ 在该区间上的积分，转化后的分子，也就是对 $f(x)$ 的积分结果为 3 * 2 &#x3D;  6，如果不除以缩放因子那么结果就是 6 倍的 $g(x)$ 在该区间上的积分，而除以分母的缩放因子，也就是积分区间长度 3，结果刚好就是 2 倍的 $g(x)$ 在该区间上的积分。</p>
 <p>这个式子在实时渲染中非常有用，比如我们的渲染方程：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530152854014.png" alt="image-20220530152854014"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530152854014.png" alt="image-20220530152854014" loading="lazy"></p>
 <p>在实时渲染中经常会改写为下面的形式：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530153029862.png" alt="image-20220530153029862"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530153029862.png" alt="image-20220530153029862" loading="lazy"></p>
 <p>其中 V 代表可见项，表示了该点的可见程度，可以理解为阴影项，于是上面的渲染方程根据之前的近似等式就可以写成：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530153303843.png" alt="image-20220530153303843"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530153303843.png" alt="image-20220530153303843" loading="lazy"></p>
 <p>我们在之前的 Shader 中就是在光照计算结果上乘了一个阴影项，这就是可以这么做的道理所在。当然使用这样的近似结果要想估计的准确需要一定的条件：</p>
 <ul>
 <li>$g(x)$ 在积分区间上的波动要尽可能小，或者说积分区间要足够小，体现到渲染中就是光源最好是点光源或者平行光</li>
@@ -57,36 +151,36 @@
 </ul>
 <h4 id="1-2-Shadow-Map-的问题"><a href="#1-2-Shadow-Map-的问题" class="headerlink" title="1.2 Shadow Map 的问题"></a>1.2 Shadow Map 的问题</h4><p>Shadow Map 是最基础的阴影算法，优点在于它是一个屏幕空间的算法，不需要知道场景的几何信息，只要知道光源位置和每一个片段的位置就可以完成（世界空间或者裁剪空间都可以），但是正因为其简单，所以有不少缺点，这也是后面的阴影算法的改进方向，总的来说 Shadow Map 有三个最大的问题：</p>
 <p>首先是<strong>自遮挡问题。</strong> Shadow Map 是一个需要两个 Pass 完成的算法，在第一个 Pass 中先从光源位置渲染一遍场景，并将每个像素的深度信息存下来，第二个 Pass 中利用这些深度信息产生阴影。问题在于 Shadow Map 分辨率有限，Shadow Map 中每个像素对应到场景中的一块区域，当第二次进行深度对比的时候，就可能会产生错误，如下图：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530145535937.png" alt="image-20220530145535937"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530145535937.png" alt="image-20220530145535937" loading="lazy"></p>
 <p>由于 Shadow Map 分辨率有限，因此每个 texel 对应于场景中一个区域，如图中的区域 1。点 p1 和 p2 对应于屏幕上的不同像素点，由于我们判断一个像素是否位于阴影中，是通过比较该点在以光源为视点的空间中的深度和对应 texel 中储存的深度值。在这种情况下 d(p1) &gt; s，而 d(p2) &lt; s，因此 p1 将会被认为是在阴影中，但其实 p1 和 p2 应该都不在阴影中。于是渲染出来的图就会产生下面的结果：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530145805637.png" alt="image-20220530145805637"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530145805637.png" alt="image-20220530145805637" loading="lazy"></p>
 <p>存在很多阴影纹路，解决这个问题最简单的方法就是在深度比较的时候加上一个容忍度，也就是当着色点的深度比 Shadow Map 中的深度大且它们的差在一定范围内我们就不认为该点被遮挡了。但是如果我们手动设定一个固定的容忍度，也就相当于为 Shadow Map 中的深度进行了一个统一的偏移，如下图：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530150153504.png" alt="image-20220530150153504"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530150153504.png" alt="image-20220530150153504" loading="lazy"></p>
 <p>这样虽然解决了自遮挡的问题，但会产生新的问题，也就是一部分本该在阴影中的点就不在阴影中了，比如：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530150232576.png" alt="image-20220530150232576"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530150232576.png" alt="image-20220530150232576" loading="lazy"></p>
 <p>脚的部分阴影就会断掉，原因如下图所示：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530150705056.png" alt="image-20220530150705056"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530150705056.png" alt="image-20220530150705056" loading="lazy"></p>
 <p>当三角形平面相对于光源的斜率比较大的时候，Shadow Map 中的深度偏移了一段距离，原本被遮挡的点就会变成没有被遮挡从而不产生阴影，如果使用相同的偏移量就会在斜率大的地方有更多的点不被遮挡，从而造成阴影断裂，也就是上图中鞋的部分显然相对于光源的斜率更大，因此会产生阴影断裂现象。因此我们希望可以根据三角形相对于光源的斜率来自适应的调整容忍度，现代显卡已经支持了这种操作。</p>
 <p>Shadow Map 的第二个问题是会<strong>产生走样</strong>，如下图：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530151628306.png" alt="image-20220530151628306"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530151628306.png" alt="image-20220530151628306" loading="lazy"></p>
 <p>这同样是由于 Shadow Map 的分辨率有限造成的，可以通过 PCF 来解决，下面会详细介绍。</p>
 <p>Shadow Map 的第三个问题是<strong>只能产生硬阴影</strong>。于是产生了各种软阴影算法，同样在之后详细介绍。</p>
 <h3 id="2-Percentage-Closer-Filtering（PCF）"><a href="#2-Percentage-Closer-Filtering（PCF）" class="headerlink" title="2 Percentage Closer Filtering（PCF）"></a>2 Percentage Closer Filtering（PCF）</h3><p>PCF 是解决 Shadow Map 的走样问题而被提出的。其思想是获取着色点周围的一系列点的深度值，与 P 点深度比较再对比较结果计算一个平均值，也就是说，在比较着色点和 Shadow Map 中的深度的时候，不仅和一个 texel 作比较，而是和多个 texel 作比较，然后将比较的结果进行一个平均作为该点的最终比较结果，这样就得到了一个平滑的，不是非 0 即 1 的阴影项。下面通过一个例子来说明：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530154335327.png" alt="image-20220530154335327"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530154335327.png" alt="image-20220530154335327" loading="lazy"></p>
 <p>对于点 P，我们将其周围 3 * 3 的深度值和当前像素作比较，得到一个比较结果：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530154413210.png" alt="image-20220530154413210"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530154413210.png" alt="image-20220530154413210" loading="lazy"></p>
 <p>然后将这些结果（加权）平均起来，作为最终该像素的阴影项，这个例子中阴影项最终结果是 0.667，当然一般来说不会取 3 * 3 这么小的邻域。现在的硬件也支持 PCF，但只会取离纹理坐标最近的四个 texel 做平均，效果有限，因此大多数情况下还是在软件 Shader 中做 PCF。</p>
 <p>需要注意的是，PCF 既不是对 Shadow Map 中的深度进行平均，也不是对生成的阴影图像进行滤波，而是对深度比较的结果进行平均。</p>
 <p>下图是 PCF 的效果，可以一定程度上改善阴影的走样问题：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530155053026.png" alt="image-20220530155053026"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530155053026.png" alt="image-20220530155053026" loading="lazy"></p>
 <h3 id="3-Percentage-Closer-Soft-Shadows（PCSS）"><a href="#3-Percentage-Closer-Soft-Shadows（PCSS）" class="headerlink" title="3 Percentage Closer Soft Shadows（PCSS）"></a>3 Percentage Closer Soft Shadows（PCSS）</h3><p>PCSS 是利用 PCF 产生软阴影的算法，为了解决 Shadow Map 无法产生软阴影的问题，实际上所有阴影反走样算法都可以用来产生软阴影。</p>
 <p>从 PCF 的原理可以看出，当我们使用的邻域面积越大，也就是卷积核越大，得到的阴影就会越软，因此我们完全可以使用大卷积核的 PCF 来产生软阴影，但是卷积核选择多大合适呢？如下图：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530155441750.png" alt="image-20220530155441750"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530155441750.png" alt="image-20220530155441750" loading="lazy"></p>
 <p>笔尖附近的阴影非常锐利，而笔杆部分的阴影就变得比较软，这是因为在笔尖处，阴影投射物（Shadow Caster）和阴影接收物（Shadow Reciever）之间的距离很近，而在笔杆部分 Shadow Caster 和 Shadow Reciever 之间的距离较远。因此我们希望 Shadow Caster 和 Shadow Reciever 之间的距离越远，使用的卷积核越大，也就使得阴影越软。</p>
 <p>这可以通过几何关系来描述：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530160458278.png" alt="image-20220530160458278"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530160458278.png" alt="image-20220530160458278" loading="lazy"></p>
 <p>绿色虚线是遮挡物（Blocker）到光源平面的距离，蓝色虚线是阴影接收平面到光源平面的距离，当 Blocker 离光源平面越远，也就是离阴影接收平面越近，光源平面经过 Blocker 上一点映射到阴影接收平面上的面积就越小，我们根据这个映射后的面积决定使用多大的卷积核，这样一来，Blocker 离阴影接收平面越近，使用的卷积核就越小，当 Blocker 离光源平面越近，也就是离阴影接收平面越远，使用的卷积核就越大，这样就可以产生比较真实的软阴影效果。从图中也很容易根据相似三角形原理得出映射后的光源面积：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530160930593.png" alt="image-20220530160930593"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530160930593.png" alt="image-20220530160930593" loading="lazy"></p>
 <p>现在的问题是，Blocker 的深度 $d_{Blocker}$ 如何得到？我们在渲染时只知道阴影接收平面上的一点，并不知道遮挡物距离光源的深度是多少，这时可以再次利用 PCF 的思想，将这一点和其周围一定邻域内的 Shadow Map 中的深度进行比较，将所有小于该点深度的值平均起来，也就是将所有该点周围能够遮挡到该点的深度都平均起来，作为 Blocker 的深度。</p>
 <p>于是 PCSS 算法的整个流程就是：</p>
 <ul>
@@ -95,28 +189,28 @@
 <li>使用对应大小的卷积核进行 PCF</li>
 </ul>
 <p>那么又产生了一个问题，计算 $d_{Blocker}$ 时，又该选用多大的邻域范围呢？当然可以是一个固定的大小，比如 5 * 5，但是更好的方法是根据光源面积大小和着色点到光源的距离远近来选择不同的卷积核大小，一种方法是从着色点到光源平面构建一个锥体，然后看该点在  Shadow Map 上对应了多大的区域，将该区域内的深度和该点的深度进行比较，把所有小于该点深度的值平均起来作为 $d_{Blocker}$，如下图：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530162415880.png" alt="image-20220530162415880"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530162415880.png" alt="image-20220530162415880" loading="lazy"></p>
 <p>另外需要说明的是对于面光源，生成 Shadow Map 时也要像点光源一样，取光源平面中心一点，作为渲染深度图的视点，从该视点出发构建视锥体进行渲染，而 Shadow Map 也就是视锥体的近平面，所以使用上面的方法就可以从空间中一点覆盖到 Shadow Map 上的一块区域。</p>
 <h3 id="4-Variance-Soft-Shadow-Mapping（VSM）"><a href="#4-Variance-Soft-Shadow-Mapping（VSM）" class="headerlink" title="4 Variance Soft Shadow Mapping（VSM）"></a>4 Variance Soft Shadow Mapping（VSM）</h3><h4 id="4-1-PCSS-的问题"><a href="#4-1-PCSS-的问题" class="headerlink" title="4.1 PCSS 的问题"></a>4.1 PCSS 的问题</h4><p>PCSS 利用 PCF 产生软阴影，但是速度并不快，因为 PCSS 在第一步计算 $d_{Blocker}$ 和最后一步进行 PCF 都需要对 Shadow Map 进行采样，而且当卷积核比较大的时候，需要采样很多纹理值，造成性能下降。一种解决方法是不对卷积核内的所有纹理进行采样，而是选取其中一些样本进行计算，但是这样得到的结果中一定存在噪声，不过可以利用后期的去噪方法来优化结果。</p>
 <p>进一步思考这个问题，PCF 的精髓在于 “Percentage Closer”，也就是有多少百分比的 texel 是能够遮挡到当前位置的，换一种说法就是在当前点的一定邻域范围内有多少深度是小于当前点深度的。这就将原问题转化为了一个统计问题，因此使用少量样本也一定程度上能够得到近似正确的结果，但有没有更好的方法来得到相对准确的近似呢？</p>
 <p>从概率与统计的角度来解决上述问题，我们只要能够知道这个邻域范围内的深度是如何分布的，就可以快速地得到一个近似的百分比。最容易想到的就是将深度的分布近似的看作是正态分布，而得到一个正态分布只需要两个量：均值和方差。</p>
 <p><strong>因此 VSM 的核心思想就是</strong>，利用区域查询方法快速地得到 Shadow Map 中一个区域内深度的均值和方差，从而得到深度的近似分布，根据深度分布得到这个区域内有多少深度是小于当前点深度的，然后就可以改进 PCSS 的第一步和第三步中 PCF 的多次纹理采样，从而获得效率提升。</p>
 <h4 id="4-2-区域查询方法"><a href="#4-2-区域查询方法" class="headerlink" title="4.2 区域查询方法"></a>4.2 区域查询方法</h4><p>对于一个区域内的均值，可以利用 MipMap 来快速查询，但是 MipMap 得到的均值是近似值，因为需要三线性插值，即在同一层级的不同平均值之间插值，然后还得在不同层级之间再插值一次得到结果：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530174618341.png" alt="image-20220530174618341"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530174618341.png" alt="image-20220530174618341" loading="lazy"></p>
 <p>更准确的查询区域均值的方法是利用 Summed Area Tables (SAT)。SAT 实际上就是二维前缀和，具体细节就不赘述了，如下图：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530170245397.png" alt="image-20220530170245397"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530170245397.png" alt="image-20220530170245397" loading="lazy"></p>
 <p>因此使用 SAT 获取区域均值是绝对准确的，非近似的，而且还支持矩形区域查询，MipMap 只支持正方形区域。</p>
 <p>至于 SAT 的构建，需要随着 Shadow Map 的更新而重新计算，而 Shadow Map 也要在场景中的物体运动或者光源运动的情况下不断更新，所以还是存在一定的开销的，但 SAT 一旦构建完成就可以使用 VSM 算法快速得到的 PCF 的结果，而不需要再对 Shadow Map 进行多次采样再平均，所以降低了 PCSS 的开销。</p>
 <h4 id="4-3-VSM-的实现"><a href="#4-3-VSM-的实现" class="headerlink" title="4.3 VSM 的实现"></a>4.3 VSM 的实现</h4><p>利用区域查询方法可以快速得到深度的均值，那么如何得到区域内深度的方差呢？利用一个经典概率论公式：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530170818733.png" alt="image-20220530170818733"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530170818733.png" alt="image-20220530170818733" loading="lazy"></p>
 <p>我们只需要在构建 Shadow Map 的时候，将深度的平方也存在一张纹理中，就可以计算出区域内深度的方差了。在实际实现中，深度和深度的平方可以存在一张纹理的两个不同通道，甚至不需要两张纹理，也不需要 MRT 支持，非常方便。</p>
 <p>于是根据均值和方差就可以构建出该区域内深度的近似分布了，下一步就是得到有多少深度比当前点深度小，也就是算出 $P(x &lt; x_{cur})$，已知概率密度函数（PDF）求概率就是对 PDF 进行积分，而如果能够提前算出所有的概率，对于给定的 $x_{cur}$，只需要查询就可以了，这正是分段概率函数（CDF），如下图：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530171327752.png" alt="image-20220530171327752"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530171327752.png" alt="image-20220530171327752" loading="lazy"></p>
 <p>但是对于一个连续的概率分布，求其 CDF 是非常困难的，于是 VSM 又利用了一个巧妙的方法来近似 CDF —— 利用切比雪夫不等式。</p>
 <p>切比雪夫不等式（Chebychev’s inequality）在单峰概率分布时如下：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530171632090.png" alt="image-20220530171632090"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530171632090.png" alt="image-20220530171632090" loading="lazy"></p>
 <p>这个不等式甚至不需要知道具体的概率分布，只要给定均值和方差，就可以得到上面的关系，如下图：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530171726482.png" alt="image-20220530171726482"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530171726482.png" alt="image-20220530171726482" loading="lazy"></p>
 <p>切比雪夫不等式描述的是 $x&gt;t$ 的概率不大于右边通过均值和方差计算出来的值。而在图形学中一个常规操作就是把不等式看作约等式，因此可以直接把切比雪夫不等式的右边的值作为 $P(x&gt;t)$ 的估计值，这样自然也就得到了我们需要的 $P(x &lt; t)$ 的估计值。</p>
 <p>但是切比雪夫不等式要求 t 必须大于均值才有效，不过对于图形学来说，这样的近似估计已经足够好了，因为它足够简单快速。</p>
 <p>现在我们可以总结一下 VSM 算法对 PCF 的改进流程：</p>
@@ -133,7 +227,7 @@
 <li>另一类是小于当前点深度的，也就是不会遮挡到当前点的深度，这些点的深度均值为 $z_{unocc}$</li>
 </ul>
 <p>于是区域内所有深度的均值 $z_{avg}$ 可以表示成：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530173458126.png" alt="image-20220530173458126"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530173458126.png" alt="image-20220530173458126" loading="lazy"></p>
 <p>其中 N 是区域内 texel 总数量， N1 和 N2 分别是不会遮挡和会遮挡当前点的 texel 数量。</p>
 <p>我们希望得到的是会遮挡到当前点的深度的均值 $z_{occ}$。而 N1&#x2F;N 就是我们上面切比雪夫不等式计算的 $P(x &gt; x_{cur})$，那么自然 N2&#x2F;N 就是 $1-P(x &gt; x_{cur})$，于是现在我们只要知道 $z_{unocc}$ 就可以得到 $z_{occ}$ 了，VSM 直接假设 $z_{unocc}&#x3D;x_{cur}$ ，也就是假设不会遮挡到当前点的深度的均值就是当前点的深度，根据这些值，就可以得到一个 $z_{occ}$ 的近似值了，这个值就作为 $d_{Blocker}$ 去计算 PCF 卷积核大小。</p>
 <p>于是 PCSS 中第一步的多次采样问题也解决了，最后总结一下 VSM 的算法流程：</p>
@@ -146,35 +240,35 @@
 </ul>
 <h4 id="4-4-VSM-的优缺点"><a href="#4-4-VSM-的优缺点" class="headerlink" title="4.4 VSM 的优缺点"></a>4.4 VSM 的优缺点</h4><p>VSM 实际上就是 PCSS 的改进方法，加速了 PCF 的计算过程，效率更高，且阴影不会产生噪声，但也存在一些问题。最严重的问题就是会产生漏光（Light Leaking）现象。</p>
 <p>所谓漏光是指当两个 shadow caster 的阴影出现重叠时，在阴影的交界处会出现漏光，如下图：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530175426796.png" alt="image-20220530175426796"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530175426796.png" alt="image-20220530175426796" loading="lazy"></p>
 <p>汽车底盘下方有些亮的地方，但是汽车底盘不应该是透光的，这是因为这些地方处于多个 shadow caster 的交界处，车顶有镂空的架子。</p>
 <p>漏光的原因在于 VSM 中使用了单峰概率分布的切比雪夫不等式作为 PCF 的估计值，也就是默认当前点周围的深度分布是一个单峰的概率分布。对于一些复杂的情况，比如树枝，确实一个点周围的深度分布很复杂，可以近似为正态分布，所以阴影也不会有问题，如下图：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530175756313.png" alt="image-20220530175756313"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530175756313.png" alt="image-20220530175756313" loading="lazy"></p>
 <p>但是有些情况下，深度分布很简单，如下图：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530175829567.png" alt="image-20220530175829567"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530175829567.png" alt="image-20220530175829567" loading="lazy"></p>
 <p>这时如果一个着色点刚好在多个镂空区域的下方，那么该点周围的深度分布可能就是多个峰值或者像上图那样的极端情况，只有几个离散的深度，这时还是用单峰切比雪夫不等式就会使得估计出来的 $P(x &gt; x_{cur})$ 偏大或者偏小，如下图：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530180032457.png" alt="image-20220530180032457"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530180032457.png" alt="image-20220530180032457" loading="lazy"></p>
 <p>也就会导致阴影项偏小或者偏大，体现在图像上就是该像素更暗或者更亮，对于阴影来说，更暗我们一般看不出来，但是更亮就会很敏感地被捕捉到，也就是漏光现象。</p>
 <h3 id="5-Moment-Shadow-Mapping（MSM）"><a href="#5-Moment-Shadow-Mapping（MSM）" class="headerlink" title="5 Moment Shadow Mapping（MSM）"></a>5 Moment Shadow Mapping（MSM）</h3><p>MSM 就是为了解决 VSM 的漏光现象而提出的。VSM 漏光的本质原因在于对深度分布的估计不准确，因为 VSM 只使用了均值和方差来估计分布，也就是只使用了深度的一阶矩和二阶矩，MEM 使用更高阶的矩来估计深度分布，得到的分布估计自然更加准确，MEM 经过实验指出，一般情况下使用前四阶矩就可以很好的拟合 PCF 的深度分布了：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530180617122.png" alt="image-20220530180617122"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220530180617122.png" alt="image-20220530180617122" loading="lazy"></p>
 <p>最后值得一提的是，现在更多的实时阴影还是使用在区域内采样深度的 PCSS，得益于时间和空间上的去噪和模糊算法可以在很短时间内达到很好的效果，因此我们可以在很小的开销下得到一张有噪声的结果，然后使用去噪或者模糊算法来优化这个结果得到好的渲染图片。</p>
 <h3 id="6-Distance-Field-Soft-Shadows"><a href="#6-Distance-Field-Soft-Shadows" class="headerlink" title="6 Distance Field Soft Shadows"></a>6 Distance Field Soft Shadows</h3><p>基于距离场的软阴影是另一种软阴影的近似算法，与以上基于 Shadow Map 的软阴影算法完全不同。相比于 Shadow Map，距离场更加快速，效果也不错，同时也不存在走样、自遮挡等问题，因此目前基于距离场的软阴影算法也逐渐被广泛使用。</p>
 <p>首先回顾一下距离场，距离场是由空间中所有点的距离函数组成的场，而距离函数是指一个点到离它最近的物体表面的距离。下图是一个字母 A 的距离场可视化的结果：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220601142044408.png" alt="image-20220601142044408"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220601142044408.png" alt="image-20220601142044408" loading="lazy"></p>
 <p>距离场的优势在于可以使用插值得到物体表面的中间状态，如下图：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220601142307684.png" alt="image-20220601142307684"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220601142307684.png" alt="image-20220601142307684" loading="lazy"></p>
 <p>上面一行是直接对图像进行插值的结果，黑色部分代表物体，从状态 A 到状态 B 表示一个物体从左向右运动，黑白的边界就表示物体的表面。如果直接对两幅图像的每个像素进行插值是无法得到这两个状态的中间状态的，而如果转化为距离场，对距离场插值之后再逆变换回图像，就可以得到两个状态的中间状态。</p>
 <h4 id="6-1-距离场的用途"><a href="#6-1-距离场的用途" class="headerlink" title="6.1 距离场的用途"></a>6.1 距离场的用途</h4><p>距离场的一个用途就是用来做 Ray marching，也叫做 sphere tracing，也就是可以通过距离场来求光线和表面的交点，如下图：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220601142714292.png" alt="image-20220601142714292"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220601142714292.png" alt="image-20220601142714292" loading="lazy"></p>
 <p>因为距离场表示的是空间中一点到离它最近的物体表面的距离，因此在任意一点处的距离函数 SDF(p) 表示了这点周围的安全距离，也就是不会碰到物体的距离，所以在该点处 SDF(p) 范围内，光线不会与任何物体有交点，于是光线就可以前进 SDF(p) 距离到达边界，到达边界后又会得到一点，然后再去查找该点的 SDF(p) 并继续前进，直到光线足够接近物体或者追踪了足够多次，因此这种方法也叫做 sphere tracing。</p>
 <h4 id="6-2-基于距离场的软阴影"><a href="#6-2-基于距离场的软阴影" class="headerlink" title="6.2 基于距离场的软阴影"></a>6.2 基于距离场的软阴影</h4><p>在 Ray marching 中就可以顺便完成阴影项的计算，得到一个软阴影，上面说到，任意一点处的距离函数 SDF(p) 表示了这点周围的安全距离，那么也就表示了这一点的安全角度，所谓安全角度是指该点不会被遮挡到的角度，如下图：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220601143236308.png" alt="image-20220601143236308"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220601143236308.png" alt="image-20220601143236308" loading="lazy"></p>
 <p>而这个安全角度是很容易算出的，我们知道着色点到该点的距离，也知道该点到离他最近的物体表面的距离，那么安全角度就是：<br>$$<br>arcsin(\frac{SDF(p)}{|p - o|})<br>$$<br>该值就可以直接作为阴影项，安全角度越小，被遮挡的概率就越大，因此该着色点的阴影也就越暗。</p>
 <p>但是在着色过程中，反三角函数的计算还是太过复杂，为了简化计算，我们直接使用该点的距离函数值和着色点到该点的距离的比值乘上一个系数来近似 arcsin 值，并且将其限制在 [0, 1] 范围内：<br>$$<br>min(k·\frac{SDF(p)}{|p - o|},1.0)<br>$$<br>这样近似不仅降低了计算开销，还能使软阴影更加灵活，因为 k 值越大，相当于在一个很小的安全角度阴影项就达到了 1.0，因此从0 到 1 的过渡就越陡峭，阴影和非阴影的边界就越明显，阴影也就越硬，如下图：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/2022-06-01144018.png" alt="2022-06-01 144018"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/2022-06-01144018.png" alt="2022-06-01 144018" loading="lazy"></p>
 <h4 id="6-3-距离场的优缺点"><a href="#6-3-距离场的优缺点" class="headerlink" title="6.3 距离场的优缺点"></a>6.3 距离场的优缺点</h4><p>相比于 Shadow Map，距离场更加快速，效果也不错，同时也不存在走样、自遮挡等问题，但是距离场是定义在三维空间中的，三维空间中的每个点的 SDF 都要存下来，需要非常大的存储开销，虽然有一些距离场的压缩算法，但相比于一张 Shadow Map 二维纹理，依然是极大的开销。</p>
 <p>此外，使用距离场自然需要预先对一个场景计算其距离场，对于一些有形变的物体每次还要重新计算，也是一个很大开销，一个场景中有多个物体还要先计算点到不同物体表面的距离，再取所有距离的最小值作为该点的 SDF，当然也可以使用场景管理的 BVH 等数据结构来优化距离场的计算过程，下图是一个复杂场景的距离场可视化结果：</p>
-<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220601144718966.png" alt="image-20220601144718966"></p>
+<p><img src="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/image-20220601144718966.png" alt="image-20220601144718966" loading="lazy"></p>
 <p>除了上面的缺点外，距离场实际上也存在一些 artifact，这里不赘述，有必要可以之后再做深入了解。</p>
 <h3 id="7-Cascaded-Shadow-Maps（CSM）"><a href="#7-Cascaded-Shadow-Maps（CSM）" class="headerlink" title="7 Cascaded Shadow Maps（CSM）"></a>7 Cascaded Shadow Maps（CSM）</h3><p>CSM 也称为级联阴影，通常用于大型场景的实时阴影中，当场景很大的时候，在一张阴影贴图中捕捉所有对象需要阴影贴图具有非常高的分辨率，否则就会造成阴影的严重锯齿。CSM 的思想是使用多张不同分辨率的阴影贴图，对于<strong>近处</strong>的场景使用<strong>较高分辨率</strong>的阴影贴图，对于远处的场景使用粗糙的阴影贴图，在两张阴影贴图过渡的地方选择其中一张使用。因为远处的对象只占画面的很少一部分像素，而近处的对象占据了画面的很大一部分，进行这样的处理显然非常合理。</p>
 <p>CSM 根据场景的远近来划分 camera frustum，靠近 camera 的区域划分的较密，远离 camera 的区域划分的比较稀疏，这就使得靠近 camera 的区域能够使用一个相对较大分辨率的 shandow map，减少失真现象。CSM的具体流程如下：</p>
@@ -188,18 +282,107 @@
 <p>CSM 几乎是现代游戏引擎中的标配算法，可以配合上面的软阴影生成算法在大型场景中达到很好的效果，并且保证时效性。</p>
 <p>关于级联阴影的具体实现可以查看<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_39300235/article/details/107765941">联级阴影贴图CSM(Cascaded shadow map)原理与实现</a></p>
 
-    <footer class="post-end"><a href="/LycTechStack.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6/"># 计算机图形学</a> <a href="/LycTechStack.github.io/tags/%E6%B8%B8%E6%88%8F%E5%BC%95%E6%93%8E/"># 游戏引擎</a> <a href="/LycTechStack.github.io/tags/%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93/"># 实时渲染</a> 
-    <p><a href="/LycTechStack.github.io/2022/06/02/20220602-GAMES202-%E5%AE%9E%E6%97%B6%E7%8E%AF%E5%A2%83%E5%85%89%E7%85%A7/">较新文章 · 【高质量实时渲染】实时环境光照 →</a></p>
-    <p><a href="/LycTechStack.github.io/2022/05/26/20220526-GameEngine-%E6%B8%B8%E6%88%8F%E5%BC%95%E6%93%8E%E4%B8%AD%E7%9A%84%E6%B8%B2%E6%9F%93%E7%B3%BB%E7%BB%9F/">较早文章 · 【游戏引擎】（二）游戏引擎中的渲染系统 →</a></p>
-    </footer></article>
-  </div>
+        </div>
+        <div class="tag-cloud post-tags"><a href="/LycTechStack.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6/" rel="tag"><span>#</span> 计算机图形学</a><a href="/LycTechStack.github.io/tags/%E6%B8%B8%E6%88%8F%E5%BC%95%E6%93%8E/" rel="tag"><span>#</span> 游戏引擎</a><a href="/LycTechStack.github.io/tags/%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93/" rel="tag"><span>#</span> 实时渲染</a></div>
+        
+        <aside class="credit"><strong>文章版权</strong><p>本文收录于 <a href="/LycTechStack.github.io/">LycTechStack</a>，仅供学习与参考。转载时请注明作者和出处。部分资料来自网络，如有侵权请联系博主。</p></aside>
+        
+  <div class="popular-posts-header">相关文章</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/06/02/20220602-GAMES202-实时环境光照/" rel="bookmark">【高质量实时渲染】实时环境光照</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/06/08/20220608-GAMES202-实时PBR材质/" rel="bookmark">【高质量实时渲染】实时PBR材质</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/06/09/20220609-GAMES202-实时光线追踪/" rel="bookmark">【高质量实时渲染】实时光线追踪</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/06/05/20220605-GAMES202-实时全局光照/" rel="bookmark">【高质量实时渲染】实时全局光照</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/05/12/20220512-RTR-图形渲染管线/" rel="bookmark">【Real-Time Rendering】图形渲染管线</a></div>
+    </li>
+  </ul>
+
+        
+          
+          
+          <nav class="article-nav" aria-label="相邻文章">
+            <a href="/LycTechStack.github.io/2022/05/26/20220526-GameEngine-%E6%B8%B8%E6%88%8F%E5%BC%95%E6%93%8E%E4%B8%AD%E7%9A%84%E6%B8%B2%E6%9F%93%E7%B3%BB%E7%BB%9F/" rel="prev"><small>上一篇</small>【游戏引擎】（二）游戏引擎中的渲染系统</a>
+            <a href="/LycTechStack.github.io/2022/06/02/20220602-GAMES202-%E5%AE%9E%E6%97%B6%E7%8E%AF%E5%A2%83%E5%85%89%E7%85%A7/" rel="next"><small>下一篇</small>【高质量实时渲染】实时环境光照</a>
+          </nav>
+        
+        
+    
+
+<section class="article-discussion" aria-labelledby="discussion-title">
+  <h2 id="discussion-title">文章讨论</h2>
+  <a class="text-link" target="_blank" rel="noopener" href="https://github.com/LYChen328/LycTechStack.github.io/issues?q=is%3Aissue%20label%3A5fa5ba904d57c232967d9a740ff2b870">在 GitHub 查看与回复</a>
+  <a class="text-link" target="_blank" rel="noopener" href="https://github.com/LYChen328/LycTechStack.github.io/issues/new?title=%E3%80%90%E9%AB%98%E8%B4%A8%E9%87%8F%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93%E3%80%91%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1&amp;body=https%3A%2F%2Flychen328.github.io%2FLycTechStack.github.io%2F2022%2F05%2F30%2F20220530-GAMES202-%25E5%25AE%259E%25E6%2597%25B6%25E9%2598%25B4%25E5%25BD%25B1%2F&amp;labels=Gitalk%2C5fa5ba904d57c232967d9a740ff2b870">发起讨论</a>
+</section>
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+      </div>
+    </div>
+  </article>
 </div>
 </main>
-<footer class="wrap foot"><a href="/LycTechStack.github.io/">LycTechStack</a><div><a href="/LycTechStack.github.io/tags/">标签</a><a href="/LycTechStack.github.io/about/">关于</a><a href="#main">回到顶部 ↑</a></div></footer>
-<dialog id="search-panel" aria-labelledby="search-title"><form method="dialog"><h2 id="search-title">搜索文章</h2><button aria-label="关闭搜索">×</button></form>
-<input type="search" id="query" placeholder="输入标题或分类" aria-label="搜索关键词"><p id="search-count" role="status"></p>
-<ul id="results"><li><a href="/LycTechStack.github.io/2023/03/16/20230316-C++%E4%B8%8ELua%E4%BA%A4%E4%BA%92%E6%80%BB%E7%BB%93/">C++与Lua交互总结 <small>Lua</small></a></li><li><a href="/LycTechStack.github.io/2023/03/16/20230316-%E5%AE%89%E5%85%A8%E7%BC%96%E7%A0%81-%E5%B9%B6%E5%8F%91%E5%92%8C%E5%A4%9A%E7%BA%BF%E7%A8%8B/">【安全编码】并发和多线程 <small>C和C++安全编码</small></a></li><li><a href="/LycTechStack.github.io/2023/03/16/20230316-%E5%AE%89%E5%85%A8%E7%BC%96%E7%A0%81-%E6%95%B4%E6%95%B0%E5%AE%89%E5%85%A8/">【安全编码】整数安全 <small>C和C++安全编码</small></a></li><li><a href="/LycTechStack.github.io/2023/03/16/20230316-%E5%AE%89%E5%85%A8%E7%BC%96%E7%A0%81-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/">【安全编码】内存管理 <small>C和C++安全编码</small></a></li><li><a href="/LycTechStack.github.io/2023/03/16/20230316-%E5%AE%89%E5%85%A8%E7%BC%96%E7%A0%81-%E5%AD%97%E7%AC%A6%E4%B8%B2/">【安全编码】字符串 <small>C和C++安全编码</small></a></li><li><a href="/LycTechStack.github.io/2023/03/09/20230309-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E5%85%B6%E4%BB%96%E5%B8%B8%E7%94%A8%E6%A8%A1%E5%BC%8F%E5%8F%8A%E6%80%BB%E7%BB%93/">【设计模式】其他常用模式及总结 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/08/20230308-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E5%A4%8D%E5%90%88%E6%A8%A1%E5%BC%8F/">【设计模式】复合模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/08/20230308-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F/">【设计模式】代理模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/07/20230307-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E7%8A%B6%E6%80%81%E6%A8%A1%E5%BC%8F/">【设计模式】状态模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/07/20230307-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E8%BF%AD%E4%BB%A3%E5%99%A8%E6%A8%A1%E5%BC%8F%E5%92%8C%E7%BB%84%E5%90%88%E6%A8%A1%E5%BC%8F/">【设计模式】迭代器模式和组合模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/05/20230305-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E6%A8%A1%E6%9D%BF%E6%96%B9%E6%B3%95%E6%A8%A1%E5%BC%8F/">【设计模式】模板方法模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/05/20230305-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E9%80%82%E9%85%8D%E5%99%A8%E6%A8%A1%E5%BC%8F%E5%92%8C%E5%A4%96%E8%A7%82%E6%A8%A1%E5%BC%8F/">【设计模式】适配器模式和外观模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/05/20230305-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E5%91%BD%E4%BB%A4%E6%A8%A1%E5%BC%8F/">【设计模式】命令模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/04/20230304-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F/">【设计模式】单例模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/04/20230304-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E5%B7%A5%E5%8E%82%E6%A8%A1%E5%BC%8F/">【设计模式】工厂模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/02/20230302-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E8%A3%85%E9%A5%B0%E8%80%85%E6%A8%A1%E5%BC%8F/">【设计模式】装饰者模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/02/20230302-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E8%A7%82%E5%AF%9F%E8%80%85%E6%A8%A1%E5%BC%8F/">【设计模式】观察者模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/02/28/20230228-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E7%AD%96%E7%95%A5%E6%A8%A1%E5%BC%8F/">【设计模式】策略模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2022/08/07/20220807-%E9%81%AE%E6%8C%A1%E5%89%94%E9%99%A4%E6%80%BB%E7%BB%93/">【Real-Time Rendering】遮挡剔除总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/08/07/20220807-UE%E6%B8%B2%E6%9F%93%E4%BD%93%E7%B3%BB-%E7%9B%AE%E5%BD%95%E7%B4%A2%E5%BC%95/">【UE渲染体系】目录索引 <small>虚幻引擎渲染体系</small></a></li><li><a href="/LycTechStack.github.io/2022/07/25/20220725-Piccolo-%E6%B8%B2%E6%9F%93%E7%B3%BB%E7%BB%9F%EF%BC%88%E4%B8%89%EF%BC%89%E5%B8%A7%E8%B0%83%E8%AF%95/">【Piccolo代码解读】渲染系统（三）帧调试 <small>Piccolo引擎代码解读</small></a></li><li><a href="/LycTechStack.github.io/2022/07/23/20220723-%E6%B8%B2%E6%9F%93%E5%99%A8-%E6%9C%80%E7%BB%88%E7%89%88%E8%AF%B4%E6%98%8E%E6%96%87%E6%A1%A3/">【光栅化渲染器】最终版说明文档 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/07/17/20220717-Vulkan-Vulkan%E8%B5%84%E6%BA%90%E7%BB%91%E5%AE%9A%E5%92%8C%E7%8A%B6%E6%80%81%E7%AE%A1%E7%90%86/">【Vulkan】资源绑定和状态管理 <small>Vulkan</small></a></li><li><a href="/LycTechStack.github.io/2022/07/17/20220717-Vulkan-Vulkan%E6%98%BE%E7%A4%BA%E4%B8%8E%E7%BB%98%E5%88%B6/">【Vulkan】显示与绘制 <small>Vulkan</small></a></li><li><a href="/LycTechStack.github.io/2022/07/17/20220717-Vulkan-Vulkan%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/">【Vulkan】内存管理 <small>Vulkan</small></a></li><li><a href="/LycTechStack.github.io/2022/07/17/20220717-Vulkan-Vulkan%E5%A4%9A%E7%BA%BF%E7%A8%8B%E6%B8%B2%E6%9F%93/">【Vulkan】多线程渲染 <small>Vulkan</small></a></li><li><a href="/LycTechStack.github.io/2022/07/16/20220716-Vulkan-Vulkan%E5%AF%B9%E8%B1%A1%E6%80%BB%E7%BB%93/">【Vulkan】常用组件总结 <small>Vulkan</small></a></li><li><a href="/LycTechStack.github.io/2022/07/13/20220713-Piccolo-%E6%B8%B2%E6%9F%93%E7%B3%BB%E7%BB%9F%EF%BC%88%E4%BA%8C%EF%BC%89%E6%B8%B2%E6%9F%93%E8%B7%AF%E5%BE%84%E7%9A%84%E5%AE%9E%E7%8E%B0/">【Piccolo代码解读】渲染系统（二）渲染路径的实现 <small>Piccolo引擎代码解读</small></a></li><li><a href="/LycTechStack.github.io/2022/07/04/20220704-GameEngine-%E6%B8%B8%E6%88%8F%E5%BC%95%E6%93%8E%E4%B8%AD%E7%9A%84%E7%89%A9%E7%90%86%E7%B3%BB%E7%BB%9F/">【游戏引擎】（四）游戏引擎中的物理系统 <small>游戏引擎</small></a></li><li><a href="/LycTechStack.github.io/2022/07/03/20220703-GPU%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/">GPU架构深度解析 <small>知识汇总</small></a></li><li><a href="/LycTechStack.github.io/2022/07/03/20220703-GameEngine-%E6%B8%B8%E6%88%8F%E5%BC%95%E6%93%8E%E4%B8%AD%E7%9A%84%E5%8A%A8%E7%94%BB%E7%B3%BB%E7%BB%9F/">【游戏引擎】（三）游戏引擎中的动画系统 <small>游戏引擎</small></a></li><li><a href="/LycTechStack.github.io/2022/07/02/20220702-%E7%9F%A5%E8%AF%86%E6%B1%87%E6%80%BB-%E5%9B%BE%E5%BD%A2%E5%AD%A6%E9%83%A8%E5%88%86/">【知识汇总】图形学和API相关 <small>知识汇总</small></a></li><li><a href="/LycTechStack.github.io/2022/06/28/20220628-%E7%9F%A5%E8%AF%86%E6%B1%87%E6%80%BB-3D%E6%95%B0%E5%AD%A6%E9%83%A8%E5%88%86/">【知识汇总】数学相关 <small>知识汇总</small></a></li><li><a href="/LycTechStack.github.io/2022/06/25/20220626-%E7%9F%A5%E8%AF%86%E6%B1%87%E6%80%BB-C++%E9%83%A8%E5%88%86/">【知识汇总】C++相关 <small>知识汇总</small></a></li><li><a href="/LycTechStack.github.io/2022/06/18/20220618-Pilot-%E6%B8%B2%E6%9F%93%E7%B3%BB%E7%BB%9F%EF%BC%88%E4%B8%80%EF%BC%89%E6%B8%B2%E6%9F%93%E6%B5%81%E7%A8%8B/">【Piccolo代码解读】渲染系统（一）渲染流程 <small>Piccolo引擎代码解读</small></a></li><li><a href="/LycTechStack.github.io/2022/06/17/20220617-Pilot-%E6%95%B4%E4%BD%93%E6%A1%86%E6%9E%B6%E4%B8%8E%E4%BB%A3%E7%A0%81%E5%8F%8D%E5%B0%84/">【Piccolo代码解读】整体框架与反射机制 <small>Piccolo引擎代码解读</small></a></li><li><a href="/LycTechStack.github.io/2022/06/09/20220609-GAMES202-%E5%AE%9E%E6%97%B6%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA/">【高质量实时渲染】实时光线追踪 <small>高质量实时渲染</small></a></li><li><a href="/LycTechStack.github.io/2022/06/08/20220608-GAMES202-%E5%AE%9E%E6%97%B6PBR%E6%9D%90%E8%B4%A8/">【高质量实时渲染】实时PBR材质 <small>高质量实时渲染</small></a></li><li><a href="/LycTechStack.github.io/2022/06/05/20220605-GAMES202-%E5%AE%9E%E6%97%B6%E5%85%A8%E5%B1%80%E5%85%89%E7%85%A7/">【高质量实时渲染】实时全局光照 <small>高质量实时渲染</small></a></li><li><a href="/LycTechStack.github.io/2022/06/02/20220602-GAMES202-%E5%AE%9E%E6%97%B6%E7%8E%AF%E5%A2%83%E5%85%89%E7%85%A7/">【高质量实时渲染】实时环境光照 <small>高质量实时渲染</small></a></li><li><a href="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/">【高质量实时渲染】实时阴影 <small>高质量实时渲染</small></a></li><li><a href="/LycTechStack.github.io/2022/05/26/20220526-GameEngine-%E6%B8%B8%E6%88%8F%E5%BC%95%E6%93%8E%E4%B8%AD%E7%9A%84%E6%B8%B2%E6%9F%93%E7%B3%BB%E7%BB%9F/">【游戏引擎】（二）游戏引擎中的渲染系统 <small>游戏引擎</small></a></li><li><a href="/LycTechStack.github.io/2022/05/25/20220525-%E9%80%8F%E8%A7%86%E6%8F%92%E5%80%BC%E6%A0%A1%E6%AD%A3/">关于透视插值校正 <small></small></a></li><li><a href="/LycTechStack.github.io/2022/05/25/20220525-%E6%B8%B2%E6%9F%93%E5%99%A8-%E6%94%B9%E8%BF%9B%E5%85%89%E6%A0%85%E5%8C%96/">【光栅化渲染器】（九）改进光栅化 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/25/20220525-%E6%B8%B2%E6%9F%93%E5%99%A8-%E5%85%89%E6%BA%90/">【光栅化渲染器】（八）光源 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/24/20220524-%E6%B8%B2%E6%9F%93%E5%99%A8-%E5%8A%A0%E8%BD%BD%E6%A8%A1%E5%9E%8B/">【光栅化渲染器】（七）加载模型 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/24/20220524-%E6%B8%B2%E6%9F%93%E5%99%A8-%E5%89%94%E9%99%A4%E4%B8%8E%E8%A3%81%E5%89%AA/">【光栅化渲染器】（六）剔除与裁剪 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/23/20220523-%E6%B8%B2%E6%9F%93%E5%99%A8-%E7%9B%B8%E6%9C%BA/">【光栅化渲染器】（五）相机 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/22/20220522-%E6%B8%B2%E6%9F%93%E5%99%A8-%E7%BA%B9%E7%90%86/">【光栅化渲染器】（四）纹理 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/21/20220521-%E6%B8%B2%E6%9F%93%E5%99%A8-%E5%8F%98%E6%8D%A2%E4%B8%8E%E6%B7%B1%E5%BA%A6%E6%B5%8B%E8%AF%95/">【光栅化渲染器】（三）变换与深度测试 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/20/20220520-%E6%B8%B2%E6%9F%93%E5%99%A8-%E6%A1%86%E6%9E%B6%E6%90%AD%E5%BB%BA/">【光栅化渲染器】（二）框架搭建 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/19/20220519-%E6%B8%B2%E6%9F%93%E5%99%A8-%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE/">【光栅化渲染器】（一）环境配置 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/18/20220518-RTR-%E6%B8%B2%E6%9F%93%E5%8A%A0%E9%80%9F%E6%8A%80%E6%9C%AF%E6%80%BB%E7%BB%93/">【Real-Time Rendering】渲染加速技术总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/18/20220518-RTR-%E9%9D%9E%E7%9C%9F%E5%AE%9E%E6%84%9F%E6%B8%B2%E6%9F%93%E6%8A%80%E6%9C%AF%E6%80%BB%E7%BB%93/">【Real-Time Rendering】非真实感渲染总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/18/20220518-RTR-%E5%9F%BA%E4%BA%8E%E5%9B%BE%E5%83%8F%E7%9A%84%E6%B8%B2%E6%9F%93%E6%8A%80%E6%9C%AF%E6%80%BB%E7%BB%93/">【Real-Time Rendering】基于图像的渲染技术总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/18/20220518-RTR-%E5%85%A8%E5%B1%80%E5%85%89%E7%85%A7%E6%80%BB%E7%BB%93/">【Real-Time Rendering】全局光照总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/">【Real-Time Rendering】延迟渲染总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/16/20220516-RTR-BRDF%E6%80%BB%E7%BB%93/">【Real-Time Rendering】BRDF总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/15/20220515-RTR-%E7%A8%8B%E5%BA%8F%E5%99%AA%E5%A3%B0%E6%80%BB%E7%BB%93/">【Real-Time Rendering】程序噪声总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/15/20220515-RTR-%E7%BA%B9%E7%90%86%E6%80%BB%E7%BB%93/">【Real-Time Rendering】纹理总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/14/20220514-RTR-%E6%A8%A1%E6%9D%BF%E6%B5%8B%E8%AF%95%E5%92%8C%E6%B7%B1%E5%BA%A6%E6%B5%8B%E8%AF%95/">【Real-Time Rendering】模板测试和深度测试 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/13/20220513-RTR-%E5%9B%BE%E5%BD%A2%E6%B8%B2%E6%9F%93%E5%92%8C%E8%A7%86%E8%A7%89%E5%A4%96%E8%A7%82/">【Real-Time Rendering】图形渲染和视觉处理 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/13/20220513-RTR-GPU%E7%AE%A1%E7%BA%BF/">【Real-Time Rendering】GPU管线 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/12/20220512-RTR-%E5%9B%BE%E5%BD%A2%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF/">【Real-Time Rendering】图形渲染管线 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/11/20220511-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B-%E6%A8%A1%E6%9D%BF%E5%92%8CRTTI/">【C++对象模型】（七）模板和RTTI <small>深度探索C++对象模型</small></a></li><li><a href="/LycTechStack.github.io/2022/05/11/20220511-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B-%E5%85%B3%E4%BA%8E%E6%89%A7%E8%A1%8C%E6%9C%9F/">【C++对象模型】（六）关于执行期 <small>深度探索C++对象模型</small></a></li><li><a href="/LycTechStack.github.io/2022/05/09/20220509-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B-%E5%AF%B9%E8%B1%A1%E5%A4%8D%E5%88%B6%E5%92%8C%E6%9E%90%E6%9E%84/">【C++对象模型】（五）对象复制和析构 <small>深度探索C++对象模型</small></a></li><li><a href="/LycTechStack.github.io/2022/05/09/20220509-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B-%E5%85%B3%E4%BA%8E%E5%87%BD%E6%95%B0%E6%88%90%E5%91%98/">【C++对象模型】（四）关于函数成员 <small>深度探索C++对象模型</small></a></li><li><a href="/LycTechStack.github.io/2022/05/07/20220507-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B-%E5%85%B3%E4%BA%8E%E6%95%B0%E6%8D%AE%E6%88%90%E5%91%98/">【C++对象模型】（三）关于数据成员 <small>深度探索C++对象模型</small></a></li><li><a href="/LycTechStack.github.io/2022/05/06/20220506-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B-%E5%85%B3%E4%BA%8E%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0/">【C++对象模型】（二）关于构造函数 <small>深度探索C++对象模型</small></a></li><li><a href="/LycTechStack.github.io/2022/05/05/20220505-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B-%E5%85%B3%E4%BA%8E%E5%AF%B9%E8%B1%A1/">【C++对象模型】（一）关于对象 <small>深度探索C++对象模型</small></a></li><li><a href="/LycTechStack.github.io/2022/05/03/20220503-STL-%E5%85%B3%E8%81%94%E5%BC%8F%E5%AE%B9%E5%99%A8/">【STL】关联式容器 <small>STL</small></a></li><li><a href="/LycTechStack.github.io/2022/04/30/20220430-STL-%E5%BA%8F%E5%88%97%E5%BC%8F%E5%AE%B9%E5%99%A8/">【STL】序列式容器 <small>STL</small></a></li><li><a href="/LycTechStack.github.io/2022/04/30/20220430-STL-%E8%BF%AD%E4%BB%A3%E5%99%A8/">【STL】迭代器 <small>STL</small></a></li><li><a href="/LycTechStack.github.io/2022/04/28/20220428-GameEngine-%E6%B8%B8%E6%88%8F%E5%BC%95%E6%93%8E%E6%9E%B6%E6%9E%84/">【游戏引擎】（一）游戏引擎架构 <small>游戏引擎</small></a></li><li><a href="/LycTechStack.github.io/2022/04/27/20220427-RayTracer-%E6%9C%80%E5%90%8E%E4%B8%80%E6%AD%A5/">【RayTracer】（二十二）最后一步 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/26/20220426-RayTracer-%E6%B7%B7%E5%90%88%E6%A6%82%E7%8E%87%E5%AF%86%E5%BA%A6/">【RayTracer】（二十一）混合概率密度 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/26/20220426-RayTracer-%E7%9B%B4%E6%8E%A5%E5%AF%B9%E5%85%89%E6%BA%90%E9%87%87%E6%A0%B7/">【RayTracer】（二十）直接对光源采样 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/24/20220424-RayTracer-%E9%9A%8F%E6%9C%BA%E6%96%B9%E5%90%91/">【RayTracer】（十九）随机方向 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/24/20220424-RayTracer-%E9%87%8D%E8%A6%81%E6%80%A7%E9%87%87%E6%A0%B7/">【RayTracer】（十八）重要性采样 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/22/20220422-RayTracer-%E6%96%B0%E7%89%B9%E6%80%A7%E6%9C%80%E7%BB%88%E5%9C%BA%E6%99%AF/">【RayTracer】（十七）新特性最终场景 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/22/20220422-RayTracer-%E5%8F%82%E4%B8%8E%E4%BB%8B%E8%B4%A8/">【RayTracer】（十六）参与介质 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/22/20220422-RayTracer-%E7%AB%8B%E6%96%B9%E4%BD%93%E5%92%8C%E5%8F%98%E6%8D%A2/">【RayTracer】（十五）立方体和变换 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/22/20220422-RayTracer-%E5%85%89%E6%BA%90/">【RayTracer】（十四）光源 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/22/20220422-%E8%83%8C%E5%8C%85%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/">【动态规划】（七）背包动态规划 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/04/21/20220421-RayTracer-%E5%9B%BE%E7%89%87%E7%BA%B9%E7%90%86/">【RayTracer】（十三）图片纹理 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/19/20220419-RayTracer-Perlin%E5%99%AA%E5%A3%B0/">【RayTracer】（十二）Perlin噪声 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/18/20220418-RayTracer-%E7%BA%B9%E7%90%86/">【RayTracer】（十一）纹理 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/18/20220418-RayTracer-%E5%AE%9E%E7%8E%B0BVH/">【RayTracer】（十）实现BVH <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/17/20220417-RayTracer-%E8%BF%90%E5%8A%A8%E6%A8%A1%E7%B3%8A/">【RayTracer】（九）运动模糊 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/16/20220416-RayTracer-%E6%9E%84%E5%BB%BA%E9%9A%8F%E6%9C%BA%E5%9C%BA%E6%99%AF/">【RayTracer】（八）构建随机场景 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/16/20220416-RayTracer-%E6%94%B9%E8%BF%9B%E7%9B%B8%E6%9C%BA/">【RayTracer】（七）景深效果 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/16/20220416-RayTracer-%E7%94%B5%E4%BB%8B%E8%B4%A8/">【RayTracer】（六）电介质 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/16/20220416-RayTracer-%E9%87%91%E5%B1%9E%E6%9D%90%E8%B4%A8/">【RayTracer】（五）金属材质 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/15/20220415-RayTracer-%E6%BC%AB%E5%8F%8D%E5%B0%84%E6%9D%90%E8%B4%A8/">【RayTracer】（四）漫反射材质 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/15/20220415-RayTracer-%E7%9B%B8%E6%9C%BA%E7%B1%BB%E5%92%8C%E5%8F%8D%E8%B5%B0%E6%A0%B7/">【RayTracer】（三）相机类和反走样 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/15/20220415-RayTracer-%E7%89%A9%E4%BD%93%E7%B1%BB/">【RayTracer】（二）实现物体类 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/13/20220413-%E6%8E%92%E5%BA%8F%E7%AE%97%E6%B3%95/">【算法】排序算法 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/04/11/20220411-RayTracer-%E5%9F%BA%E6%9C%AC%E5%B7%A5%E5%85%B7%E7%B1%BB/">【RayTracer】（一）实现基本工具类 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/10/20220410-Shader-%E5%99%AA%E5%A3%B0%E7%BA%B9%E7%90%86/">【Unity Shader】（十）噪声纹理 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/09/20220409-Shader-%E9%9D%9E%E7%9C%9F%E5%AE%9E%E6%84%9F%E6%B8%B2%E6%9F%93/">【Unity Shader】（九）非真实感渲染 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/09/20220409-Shader-%E9%AB%98%E7%BA%A7%E5%B1%8F%E5%B9%95%E7%89%B9%E6%95%88/">【Unity Shader】（八）高级屏幕特效 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/07/20220407-Shader-%E5%9F%BA%E7%A1%80%E5%B1%8F%E5%B9%95%E7%89%B9%E6%95%88/">【Unity Shader】（七）基础屏幕特效 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/07/20220407-Shader-%E5%8A%A8%E7%94%BB/">【Unity Shader】（六）动画 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/07/20220407-Shader-%E9%AB%98%E7%BA%A7%E7%BA%B9%E7%90%86/">【Unity Shader】（五）高级纹理 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/06/20220406-%E4%BC%98%E5%85%88%E9%98%9F%E5%88%97%E5%92%8C%E5%A0%86/">【数据结构】优先队列和堆 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/04/05/20220405-%E8%B4%AA%E5%BF%83%E7%AE%97%E6%B3%95/">【算法】贪心算法 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/04/04/20220404-Shader-%E9%98%B4%E5%BD%B1%E5%92%8C%E8%A1%B0%E5%87%8F/">【Unity Shader】（四）阴影和衰减 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/03/20220403-Shader-%E9%80%8F%E6%98%8E%E6%95%88%E6%9E%9C/">【Unity Shader】（三）透明效果 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/03/20220403-Shader-%E5%9F%BA%E7%A1%80%E7%BA%B9%E7%90%86/">【Unity Shader】（二）基础纹理 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/02/20220402-Shader-%E5%9F%BA%E7%A1%80%E5%85%89%E7%85%A7/">【Unity Shader】（一）基础光照 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/03/28/20220328-%E4%BA%8C%E5%88%86%E6%9F%A5%E6%89%BE/">【算法】二分查找 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/25/20220325-%E5%8C%BA%E9%97%B4%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/">【动态规划】（六）区间动态规划 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/24/20220324-%E6%B8%B2%E6%9F%93%E5%92%8C%E6%9D%90%E8%B4%A8%E5%89%8D%E6%B2%BF/">【计算机图形学】（十五）高级渲染和材质概述 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/24/20220324-%E6%9D%90%E8%B4%A8/">【计算机图形学】（十四）材质 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/">【计算机图形学】（十三）路径追踪 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/19/20220319-%E5%89%8D%E7%BC%80%E5%92%8C/">【动态规划】（五）前缀和 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/18/20220318-%E8%BE%90%E5%B0%84%E5%BA%A6%E9%87%8F%E5%AD%A6/">【计算机图形学】（十二）辐射度量学基础 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/17/20220317-Whitted%E9%A3%8E%E6%A0%BC%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA/">【计算机图形学】（十一）Whitted 风格光线追踪 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/15/20220315-%E7%BA%BF%E6%80%A7%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92-%E7%9F%A9%E9%98%B5%E5%92%8C%E6%97%A0%E4%B8%B2/">【动态规划】（四）线性动态规划之矩阵和无串问题 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/13/20220313-%E9%98%B4%E5%BD%B1/">【计算机图形学】（十）阴影 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/13/20220313-%E5%87%A0%E4%BD%95/">【计算机图形学】（九）几何 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/12/20220312-%E7%BA%BF%E6%80%A7%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92-%E5%8F%8C%E4%B8%B2/">【动态规划】（三）线性动态规划之双串问题 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/10/20220310-%E5%9B%BE%E5%BD%A2%E7%AE%A1%E7%BA%BF/">【计算机图形学】（八）图形管线 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/10/20220310-%E7%BA%B9%E7%90%86%E6%98%A0%E5%B0%84/">【计算机图形学】（七）纹理映射 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/10/20220310-%E7%BA%BF%E6%80%A7%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92-%E5%B8%A6%E7%BB%B4%E5%BA%A6%E5%8D%95%E4%B8%B2/">【动态规划】（二）线性动态规划之带维度单串问题 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/09/20220309-%E7%9D%80%E8%89%B2/">【计算机图形学】（六）着色 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/08/20220308-%E6%B7%B1%E5%BA%A6%E7%BC%93%E5%86%B2/">【计算机图形学】（五）深度缓冲 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/07/20220307-%E7%BA%BF%E6%80%A7%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92-%E5%8D%95%E4%B8%B2/">【动态规划】（一）线性动态规划之单串问题 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/06/20220306-%E5%8F%8D%E8%B5%B0%E6%A0%B7/">【计算机图形学】（四）反走样 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/">【计算机图形学】（三）光栅化 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/03/20220303-%E4%BA%8C%E5%8F%89%E6%A0%91/">【数据结构】二叉树 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/03/20200303-%E6%97%8B%E8%BD%AC%E4%B8%8E%E5%9B%9B%E5%85%83%E6%95%B0/">【计算机图形学】（二）旋转与四元数 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/02/20200302-%E5%8F%98%E6%8D%A2/">【计算机图形学】（一）变换 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/02/20220303-%E7%BA%BF%E6%80%A7%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/">【数据结构】线性数据结构 <small>数据结构与算法</small></a></li></ul></dialog>
+  <footer class="site-footer"><div class="wrap footer-inner">
+    <div class="footer-brand"><img src="/LycTechStack.github.io/images/journal/mark.svg" alt="" width="24" height="24"><strong>LycTechStack</strong><span>© 2021–2026 Lyc</span></div>
+    <div class="footer-links">
+      <a href="mailto:27487358@qq.com">联系作者</a>
+      <a href="/LycTechStack.github.io/atom.xml"><svg class="icon" width="14" height="14" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#rss"/></svg> RSS</a>
+      <a href="#top">返回顶部 ↑</a>
+    </div>
+  </div>
+  <div class="wrap footer-counts">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+  <span id="busuanzi_container_site_uv" style="display:none">访客 <span id="busuanzi_value_site_uv"></span></span>
+  <span id="busuanzi_container_site_pv" style="display:none">浏览 <span id="busuanzi_value_site_pv"></span></span>
 
+</div>
+  </footer>
+  
+    <dialog class="search-dialog" aria-labelledby="search-title" data-index="/LycTechStack.github.io/search.xml">
+  <div class="dialog-head"><h2 id="search-title">搜索笔记</h2><form method="dialog"><button class="icon-button" aria-label="关闭搜索"><svg class="icon" width="18" height="18" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#close"/></svg></button></form></div>
+  <label class="search-field"><svg class="icon" width="20" height="20" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#search"/></svg><input type="search" aria-label="搜索标题、标签或正文" placeholder="输入标题、标签或正文关键词…" autocomplete="off" spellcheck="false"></label>
+  <div class="search-suggestions"><p>常用标签</p><div class="tag-cloud"><button type="button" data-query="计算机图形学"># 计算机图形学</button><button type="button" data-query="C++"># C++</button><button type="button" data-query="实时渲染"># 实时渲染</button><button type="button" data-query="光线追踪"># 光线追踪</button><button type="button" data-query="游戏引擎"># 游戏引擎</button><button type="button" data-query="设计模式"># 设计模式</button></div></div>
+  <p class="search-status" role="status"></p><ol class="search-results"></ol>
+</dialog>
+
+    <script defer src="/LycTechStack.github.io/js/journal-search.js"></script>
+  
+  
+    
+<script src="/LycTechStack.github.io/js/utils.js"></script>
+
+  
+  
+  
 
   
       
@@ -258,4 +441,5 @@
 
     
 
-</body></html>
+</body>
+</html>

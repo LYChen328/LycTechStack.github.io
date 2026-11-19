@@ -1,43 +1,109 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>【计算机图形学】（三）光栅化 · LycTechStack</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a1017">
+  <meta name="generator" content="Hexo 5.4.1">
+  <title>【计算机图形学】（三）光栅化 | LycTechStack</title>
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"lychen328.github.io","root":"/LycTechStack.github.io/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":true,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":true,"nav":null,"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":5,"unescape":false,"preload":false},"motion":{"enable":false,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+  <meta name="description" content="光栅化（Rasteriztion）首先回顾一下MVP变换的过程（之前的文章中没有提到坐标系的概念，这里回顾的时候顺便提一下图形学中的各个坐标系的转换，其实就是之前的各种变换）：  为了得到从某一个视角看到的物体的样子，我们首先要对相机和物体进行相机变换（View &#x2F; Camera Transformation），将相机的三个方向轴与世界坐标系对齐，并移到坐标原点（这一步是将相机坐标系转换">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【计算机图形学】（三）光栅化">
+<meta property="og:url" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/index.html">
+<meta property="og:site_name" content="LycTechStack">
+<meta property="og:description" content="光栅化（Rasteriztion）首先回顾一下MVP变换的过程（之前的文章中没有提到坐标系的概念，这里回顾的时候顺便提一下图形学中的各个坐标系的转换，其实就是之前的各种变换）：  为了得到从某一个视角看到的物体的样子，我们首先要对相机和物体进行相机变换（View &#x2F; Camera Transformation），将相机的三个方向轴与世界坐标系对齐，并移到坐标原点（这一步是将相机坐标系转换">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/image-20220306172222268.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/image-20220306173109581.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/image-20220306180614301.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/image-20220306180926083.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/image-20220306182055653.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/image-20220306182158250.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/image-20220306182343897.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/image-20220306182649751.png">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/image-20220306182717888.png">
+<meta property="article:published_time" content="2022-03-06T10:33:25.000Z">
+<meta property="article:modified_time" content="2026-11-18T15:42:22.567Z">
+<meta property="article:author" content="Lyc">
+<meta property="article:tag" content="计算机图形学">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/image-20220306172222268.png">
   <link rel="canonical" href="https://lychen328.github.io/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/">
-  <link rel="alternate" type="application/atom+xml" href="/LycTechStack.github.io/atom.xml">
-  <script>try { const mode = localStorage.getItem('studio-appearance'); if (mode) document.documentElement.dataset.mode = mode; } catch {}</script>
-  <link rel="stylesheet" href="/LycTechStack.github.io/studio/studio.css">
-  <script defer src="/LycTechStack.github.io/studio/studio.js"></script>
-  <script defer src="/LycTechStack.github.io/studio/stars.js?v=2"></script>
+  <link rel="icon" href="/LycTechStack.github.io/images/journal/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/LycTechStack.github.io/css/journal.css">
+  
+  
+
+
+
+
+
+
+  <script defer src="/LycTechStack.github.io/js/journal.js"></script>
+  
+<link rel="alternate" href="/LycTechStack.github.io/atom.xml" title="LycTechStack" type="application/atom+xml">
 </head>
-<body>
-<a class="skip" href="#main">跳到正文</a>
-<header class="mast"><div class="mast-inner">
-  <a class="brand" href="/LycTechStack.github.io/"><span class="brand-icon" aria-hidden="true">✴︎</span>LycTechStack</a>
-  <nav aria-label="主导航">
-    <a  href="/LycTechStack.github.io/">首页</a>
-    <a  href="/LycTechStack.github.io/archives/">文章目录</a>
-    <a  href="/LycTechStack.github.io/categories/">专题</a>
-  </nav>
-  <div class="actions">
-    <button type="button" data-search aria-label="搜索文章"><i class="glass"></i></button>
-    <button type="button" data-mode aria-label="切换明暗模式"><i class="mode-icon"></i></button>
+<body id="top">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="world-grid" aria-hidden="true"></div>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="wordmark" href="/LycTechStack.github.io/" rel="home"><img src="/LycTechStack.github.io/images/journal/mark.svg" alt="" width="33" height="33">LycTechStack</a>
+      <nav class="primary-nav" id="primary-nav" aria-label="主导航">
+        
+          
+          <a href="/LycTechStack.github.io/">首页</a>
+        
+          
+          <a href="/LycTechStack.github.io/archives/">归档</a>
+        
+          
+          <a href="/LycTechStack.github.io/categories/">分类</a>
+        
+          
+          <a href="/LycTechStack.github.io/tags/">标签</a>
+        
+          
+          <a href="/LycTechStack.github.io/about/">关于</a>
+        
+      </nav>
+      <div class="header-tools">
+        <button class="search-trigger js-only" type="button" aria-label="搜索文章" aria-haspopup="dialog"><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#search"/></svg><span>搜索</span><kbd>/</kbd></button>
+        <a class="github-link" href="https://github.com/LYChen328/" aria-label="Lyc 的 GitHub" target="_blank" rel="noopener"><svg class="icon" width="19" height="19" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#github"/></svg></a>
+        <button class="menu-toggle js-only" type="button" aria-label="展开导航" aria-expanded="false" aria-controls="primary-nav"><svg class="icon" width="22" height="22" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#menu"/></svg></button>
+      </div>
+    </div>
+    <div class="reading-progress" aria-hidden="true"></div>
+  </header>
+  <main id="main" tabindex="-1">
+<div class="wrap inner-page post-page">
+  <div class="breadcrumbs"><a href="/LycTechStack.github.io/">首页</a><span>/</span><a href="/LycTechStack.github.io/archives/">归档</a>
+    <span>/</span><a href="/LycTechStack.github.io/categories/GAMES101/">GAMES101</a>
   </div>
-</div></header>
-<main id="main">
-<header class="sky article-hero">
-  <canvas class="starfield" aria-hidden="true"></canvas>
-  <div class="hero-copy"><p class="sky-kicker"><a href="/LycTechStack.github.io/categories/GAMES101/">GAMES101</a> </p>
-    <h1>【计算机图形学】（三）光栅化</h1>
-    <p class="deck">Lyc　·　<time>2022 年 3 月 6 日</time>　·　3 分钟</p>
-  </div><div class="sky-foot"><a href="#reading">开始阅读 ↓</a><button class="motion" type="button" data-motion aria-label="暂停星空动画" aria-pressed="false" title="暂停星空动画"><span aria-hidden="true">Ⅱ</span></button>
-</div>
-</header>
-<div class="reading" id="reading">
-  <canvas class="starfield margin-stars" aria-hidden="true"></canvas>
-  <div class="reader wrap">
-    <aside><details class="outline" open><summary>本篇目录</summary><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%89%E6%A0%85%E5%8C%96%EF%BC%88Rasteriztion%EF%BC%89"><span class="toc-text">光栅化（Rasteriztion）</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-%E5%B1%8F%E5%B9%95%E7%9A%84%E5%AE%9A%E4%B9%89"><span class="toc-text">1 屏幕的定义</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-%E8%A7%86%E5%8F%A3%E5%8F%98%E6%8D%A2"><span class="toc-text">2 视口变换</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-%E5%85%89%E6%A0%85%E5%8C%96"><span class="toc-text">3 光栅化</span></a></li></ol></li></ol></details></aside>
-    <article class="prose"><h3 id="光栅化（Rasteriztion）"><a href="#光栅化（Rasteriztion）" class="headerlink" title="光栅化（Rasteriztion）"></a>光栅化（Rasteriztion）</h3><p>首先回顾一下MVP变换的过程（之前的文章中没有提到坐标系的概念，这里回顾的时候顺便提一下图形学中的各个坐标系的转换，其实就是之前的各种变换）：</p>
+  <article itemscope itemtype="https://schema.org/BlogPosting">
+    <header class="article-heading">
+      
+      <p class="kicker article-series">计算机图形学<span>第三篇</span></p>
+      <h1 class="page-title" itemprop="headline">光栅化</h1>
+      <div class="article-meta"><span itemprop="author">Lyc</span><i></i>
+        <time datetime="2022-03-06T10:33:25.000Z" itemprop="datePublished">2022-03-06</time>
+        <i></i><span>3.4k 字</span>
+        <i></i><span><svg class="icon" width="14" height="14" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#clock"/></svg>约 3 分钟</span>
+        <span id="busuanzi_container_page_pv" style="display:none"><span id="busuanzi_value_page_pv"></span> 次阅读</span>
+      </div>
+    </header>
+    
+    <div class="article-layout">
+      <aside class="toc-panel"><details open><summary><svg class="icon" width="17" height="17" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#toc"/></svg>文章目录 <svg class="icon" width="15" height="15" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#chevron"/></svg></summary><nav aria-label="文章目录"><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%89%E6%A0%85%E5%8C%96%EF%BC%88Rasteriztion%EF%BC%89"><span class="toc-text">光栅化（Rasteriztion）</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-%E5%B1%8F%E5%B9%95%E7%9A%84%E5%AE%9A%E4%B9%89"><span class="toc-text">1 屏幕的定义</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-%E8%A7%86%E5%8F%A3%E5%8F%98%E6%8D%A2"><span class="toc-text">2 视口变换</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-%E5%85%89%E6%A0%85%E5%8C%96"><span class="toc-text">3 光栅化</span></a></li></ol></li></ol></nav></details></aside>
+      <div class="article-column">
+        <div class="prose post-body" itemprop="articleBody">
+          
+          <h3 id="光栅化（Rasteriztion）"><a href="#光栅化（Rasteriztion）" class="headerlink" title="光栅化（Rasteriztion）"></a>光栅化（Rasteriztion）</h3><p>首先回顾一下MVP变换的过程（之前的文章中没有提到坐标系的概念，这里回顾的时候顺便提一下图形学中的各个坐标系的转换，其实就是之前的各种变换）：</p>
 <ul>
 <li>为了得到从某一个视角看到的物体的样子，我们首先要对相机和物体进行相机变换（View &#x2F; Camera Transformation），将相机的三个方向轴与世界坐标系对齐，并移到坐标原点（这一步是将相机坐标系转换到世界坐标系，或者反着说，将世界坐标系转到相机坐标系，因为相机就是我们的眼睛，是观察物体的坐标系）</li>
 <li>然后对物体做同样的变换以使得相机和物体不发生相对运动</li>
@@ -47,12 +113,12 @@
 <p><em><span id="more"></span></em></p>
 <h4 id="1-屏幕的定义"><a href="#1-屏幕的定义" class="headerlink" title="1 屏幕的定义"></a>1 屏幕的定义</h4><p>屏幕可以看作是一个二维矩阵，矩阵中的每一个元素存储的是像素值，屏幕显示图形的过程，就是遍历整个数组，显示对应像素值的过程。这个二维数组的大小也就是常说的分辨率。</p>
 <p>为了简化后面的推导，这里我们把每一个像素简单的抽象成为一个方格，并且这个方格中的颜色是一致的，如下图所示：</p>
-<p><img src="/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/image-20220306172222268.png" alt="image-20220306172222268"></p>
+<p><img src="/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/image-20220306172222268.png" alt="image-20220306172222268" loading="lazy"></p>
 <p>蓝色像素的坐标是 (2, 1) ，这个像素的中心点的坐标是 (2.5, 1.5) ，也就是像素 (x, y) 的中心点坐标是 (x+0.5, y+0.5) .</p>
 <p>这里的屏幕坐标系原点定义在了左下角，通常计算机中屏幕原点在左上角，这个定义不影响后面的推导。</p>
 <h4 id="2-视口变换"><a href="#2-视口变换" class="headerlink" title="2 视口变换"></a>2 视口变换</h4><p>有了屏幕的定义，我们想要把投影后的立方体显示在屏幕上，接下来要做的一步叫做<strong>视口变换</strong>，也就是将立方体转换到屏幕空间中，只有先转换到屏幕空间中，才能进一步计算屏幕空间中的点（像素）都应该是什么颜色。</p>
 <p>这是一个3D空间到2D空间的转换，因此我们先考虑简化的情况，也就是不考虑Z方向，即不考虑3D空间中的远近、遮挡等关系，先只将XY平面转换到屏幕平面上，这个过程很简单，只要将立方体的XY平面映射到和屏幕一样的比例就可以。也就是把 [-1, 1] 映射到 [0, width] 和 [0, height]上。</p>
-<p><img src="/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/image-20220306173109581.png" alt="image-20220306173109581"></p>
+<p><img src="/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/image-20220306173109581.png" alt="image-20220306173109581" loading="lazy"></p>
 <p>同时还要进行平移，因为透视坐标系中原点是在 (0,0) 的位置，我们当然希望这个原点在屏幕的中央，而屏幕的左下角是原点，所以需要把透视坐标原点平移(width&#x2F;2, height&#x2F;2).</p>
 <p>这样就完成了从透视坐标系到屏幕坐标系的转换。</p>
 <h4 id="3-光栅化"><a href="#3-光栅化" class="headerlink" title="3 光栅化"></a>3 光栅化</h4><p>在介绍光栅化之前，有必要再次重申一下我们现在在干嘛。</p>
@@ -69,10 +135,10 @@
 <p>因为三角形是最最基本的几何图形，任何多边形都可以拆分成若干三角形，并且三角形有许多优秀的性质，比如对于图形的内外有严格的定义，再比如很好进行插值运算，上面三角形颜色取三个顶点颜色的渐变就是三角形优势的体现之一。</p>
 </blockquote>
 <p>有了这个三角形之后，我们要做的事情就很简单了，判断每一个像素是否在这个三角形内部，如果在内部，就填上三角形的颜色。</p>
-<p><img src="/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/image-20220306180614301.png" alt="image-20220306180614301"></p>
+<p><img src="/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/image-20220306180614301.png" alt="image-20220306180614301" loading="lazy"></p>
 <p>这个过程其实是一个<strong>采样</strong>的过程，采样这个概念非常重要，简单而不严谨的来说就是定义一个函数，计算每个采样点在这个函数上的值就是采样。这里的函数就是判断一个点 (x, y) 是否在给定的三角形内部，那么如何实现这个函数的功能呢？</p>
 <p>最简单的方法就是<strong>向量叉乘</strong>，如下图所示：</p>
-<p><img src="/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/image-20220306180926083.png" alt="image-20220306180926083"></p>
+<p><img src="/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/image-20220306180926083.png" alt="image-20220306180926083" loading="lazy"></p>
 <p>对于点 P，计算向量$\vec{AB}$与向量$\vec{AP}$的叉乘，得到的方向朝向屏幕外，这意味着点 P 在 AB 的左边，同理计算向量$\vec{BC}$与向量$\vec{BP}$的叉乘，得到的向量方向也是朝向屏幕外，这意味着点 P 在 BC 的左边，同样计算向量$\vec{CA}$与向量$\vec{CP}$的叉乘，得到的向量方向还是朝向屏幕外，这意味着点 P 在 CA 的左边，于是我们可以判定点 P 在三角形 ABC 的内部。</p>
 <p>如果三个叉乘得到的某一个向量方向朝屏幕内，就说明点 P 在某一条边的右侧，那么点 P 一定在三角形ABC外部。这里给出C++版本代码：</p>
 <figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">  Vector3f* _v存储三角形的三个顶点坐标，顶点顺序为逆时针</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="function"><span class="type">static</span> <span class="type">bool</span> <span class="title">insideTriangle</span><span class="params">(<span class="type">int</span> x, <span class="type">int</span> y, <span class="type">const</span> Vector3f* _v)</span></span></span><br><span class="line"><span class="function"></span>&#123;   </span><br><span class="line">    <span class="comment">//用像素中心坐标判断</span></span><br><span class="line">    <span class="function">Vector3f <span class="title">p</span><span class="params">(<span class="type">float</span>(x) + <span class="number">0.5</span>, <span class="type">float</span>(y) + <span class="number">0.5</span>, <span class="number">1</span>)</span></span>;</span><br><span class="line">    <span class="comment">//向量AB和AC叉乘的纵坐标</span></span><br><span class="line">    <span class="type">float</span> signofTrig = (_v[<span class="number">1</span>].<span class="built_in">x</span>() - _v[<span class="number">0</span>].<span class="built_in">x</span>()) * (_v[<span class="number">2</span>].<span class="built_in">y</span>() - _v[<span class="number">0</span>].<span class="built_in">y</span>()) - (_v[<span class="number">1</span>].<span class="built_in">y</span>() - _v[<span class="number">0</span>].<span class="built_in">y</span>()) * (_v[<span class="number">2</span>].<span class="built_in">x</span>() - _v[<span class="number">0</span>].<span class="built_in">x</span>());</span><br><span class="line">    <span class="comment">//向量AB和AP叉乘的纵坐标</span></span><br><span class="line">    <span class="type">float</span> signOfAB = (_v[<span class="number">1</span>].<span class="built_in">x</span>() - _v[<span class="number">0</span>].<span class="built_in">x</span>()) * (p.<span class="built_in">y</span>() - _v[<span class="number">0</span>].<span class="built_in">y</span>()) - (_v[<span class="number">1</span>].<span class="built_in">y</span>() - _v[<span class="number">0</span>].<span class="built_in">y</span>()) * (p.<span class="built_in">x</span>() - _v[<span class="number">0</span>].<span class="built_in">x</span>());</span><br><span class="line">    <span class="comment">//向量CA和CP叉乘的纵坐标</span></span><br><span class="line">    <span class="type">float</span> signOfCA = (_v[<span class="number">0</span>].<span class="built_in">x</span>() - _v[<span class="number">2</span>].<span class="built_in">x</span>()) * (p.<span class="built_in">y</span>() - _v[<span class="number">2</span>].<span class="built_in">y</span>()) - (_v[<span class="number">0</span>].<span class="built_in">y</span>() - _v[<span class="number">2</span>].<span class="built_in">y</span>()) * (p.<span class="built_in">x</span>() - _v[<span class="number">2</span>].<span class="built_in">x</span>());</span><br><span class="line">    <span class="comment">//向量BC和BP叉乘的纵坐标</span></span><br><span class="line">    <span class="type">float</span> signOfBC = (_v[<span class="number">2</span>].<span class="built_in">x</span>() - _v[<span class="number">1</span>].<span class="built_in">x</span>()) * (p.<span class="built_in">y</span>() - _v[<span class="number">2</span>].<span class="built_in">y</span>()) - (_v[<span class="number">2</span>].<span class="built_in">y</span>() - _v[<span class="number">1</span>].<span class="built_in">y</span>()) * (p.<span class="built_in">x</span>() - _v[<span class="number">2</span>].<span class="built_in">x</span>());</span><br><span class="line">    <span class="type">bool</span> d1 = (signOfAB * signofTrig &gt; <span class="number">0</span>);</span><br><span class="line">    <span class="type">bool</span> d2 = (signOfCA * signofTrig &gt; <span class="number">0</span>);</span><br><span class="line">    <span class="type">bool</span> d3 = (signOfBC * signofTrig &gt; <span class="number">0</span>);</span><br><span class="line">    <span class="keyword">return</span> d1 &amp;&amp; d2 &amp;&amp; d3;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
@@ -88,30 +154,119 @@
 <li>判断屏幕上每一个像素是否在三角形内部，在则上色</li>
 </ul>
 <p>这个过程很简单，但存在许多问题，比如按照上面的流程，我们的代码应该这样写：</p>
-<p><img src="/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/image-20220306182055653.png" alt="image-20220306182055653"></p>
+<p><img src="/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/image-20220306182055653.png" alt="image-20220306182055653" loading="lazy"></p>
 <p>显然十分暴力，对于下大多数情况来说，我们完全不必遍历所有像素点，使用一个Bounding Box就可以大幅降低时间复杂度：</p>
-<p><img src="/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/image-20220306182158250.png" alt="image-20220306182158250"></p>
+<p><img src="/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/image-20220306182158250.png" alt="image-20220306182158250" loading="lazy"></p>
 <p>但这还不够，如果三角形非常细长，而且还刚好倾斜45°左右，那么实际上它也只占整个Bounding Box很少一部分，于是我们可以进一步改进：</p>
-<p><img src="/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/image-20220306182343897.png" alt="image-20220306182343897"></p>
+<p><img src="/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/image-20220306182343897.png" alt="image-20220306182343897" loading="lazy"></p>
 <p>先算出每一行的起点坐标，逐行扫描，遇到不在三角形内部的点就开始扫描下一行。</p>
 <p>现在我们来看一下光栅化之后的结果是什么样的：</p>
-<p><img src="/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/image-20220306182649751.png" alt="image-20220306182649751"></p>
+<p><img src="/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/image-20220306182649751.png" alt="image-20220306182649751" loading="lazy"></p>
 <p>而我们想得到的样子却是这样：</p>
-<p><img src="/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/image-20220306182717888.png" alt="image-20220306182717888"></p>
+<p><img src="/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/image-20220306182717888.png" alt="image-20220306182717888" loading="lazy"></p>
 <p>不能说毫无关系，但确实不是一个东西，这是因为我们现在得到的光栅化结果有太多的<strong>锯齿</strong>了，更专业一点的说法就是我们的光栅化过程使得图形<strong>走样（Aliasing）</strong>了，因此我们必须对光栅化的过程进行<strong>抗锯齿</strong>，更准确的说法叫做<strong>反走样</strong>。关于反走样将在下一篇文章中进行详细介绍。</p>
 
-    <footer class="post-end"><a href="/LycTechStack.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6/"># 计算机图形学</a> 
-    <p><a href="/LycTechStack.github.io/2022/03/06/20220306-%E5%8F%8D%E8%B5%B0%E6%A0%B7/">较新文章 · 【计算机图形学】（四）反走样 →</a></p>
-    <p><a href="/LycTechStack.github.io/2022/03/03/20220303-%E4%BA%8C%E5%8F%89%E6%A0%91/">较早文章 · 【数据结构】二叉树 →</a></p>
-    </footer></article>
-  </div>
+        </div>
+        <div class="tag-cloud post-tags"><a href="/LycTechStack.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6/" rel="tag"><span>#</span> 计算机图形学</a></div>
+        
+        <aside class="credit"><strong>文章版权</strong><p>本文收录于 <a href="/LycTechStack.github.io/">LycTechStack</a>，仅供学习与参考。转载时请注明作者和出处。部分资料来自网络，如有侵权请联系博主。</p></aside>
+        
+  <div class="popular-posts-header">相关文章</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/03/02/20200302-变换/" rel="bookmark">【计算机图形学】（一）变换</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/03/03/20200303-旋转与四元数/" rel="bookmark">【计算机图形学】（二）旋转与四元数</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/03/06/20220306-反走样/" rel="bookmark">【计算机图形学】（四）反走样</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/03/08/20220308-深度缓冲/" rel="bookmark">【计算机图形学】（五）深度缓冲</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/03/09/20220309-着色/" rel="bookmark">【计算机图形学】（六）着色</a></div>
+    </li>
+  </ul>
+
+        
+          
+          
+          <nav class="article-nav" aria-label="相邻文章">
+            <a href="/LycTechStack.github.io/2022/03/03/20220303-%E4%BA%8C%E5%8F%89%E6%A0%91/" rel="prev"><small>上一篇</small>【数据结构】二叉树</a>
+            <a href="/LycTechStack.github.io/2022/03/06/20220306-%E5%8F%8D%E8%B5%B0%E6%A0%B7/" rel="next"><small>下一篇</small>【计算机图形学】（四）反走样</a>
+          </nav>
+        
+        
+    
+
+<section class="article-discussion" aria-labelledby="discussion-title">
+  <h2 id="discussion-title">文章讨论</h2>
+  <a class="text-link" target="_blank" rel="noopener" href="https://github.com/LYChen328/LycTechStack.github.io/issues?q=is%3Aissue%20label%3A509ba16b53fe928009a65a36d252c64e">在 GitHub 查看与回复</a>
+  <a class="text-link" target="_blank" rel="noopener" href="https://github.com/LYChen328/LycTechStack.github.io/issues/new?title=%E3%80%90%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E3%80%91%EF%BC%88%E4%B8%89%EF%BC%89%E5%85%89%E6%A0%85%E5%8C%96&amp;body=https%3A%2F%2Flychen328.github.io%2FLycTechStack.github.io%2F2022%2F03%2F06%2F20220306-%25E5%2585%2589%25E6%25A0%2585%25E5%258C%2596%2F&amp;labels=Gitalk%2C509ba16b53fe928009a65a36d252c64e">发起讨论</a>
+</section>
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+      </div>
+    </div>
+  </article>
 </div>
 </main>
-<footer class="wrap foot"><a href="/LycTechStack.github.io/">LycTechStack</a><div><a href="/LycTechStack.github.io/tags/">标签</a><a href="/LycTechStack.github.io/about/">关于</a><a href="#main">回到顶部 ↑</a></div></footer>
-<dialog id="search-panel" aria-labelledby="search-title"><form method="dialog"><h2 id="search-title">搜索文章</h2><button aria-label="关闭搜索">×</button></form>
-<input type="search" id="query" placeholder="输入标题或分类" aria-label="搜索关键词"><p id="search-count" role="status"></p>
-<ul id="results"><li><a href="/LycTechStack.github.io/2023/03/16/20230316-C++%E4%B8%8ELua%E4%BA%A4%E4%BA%92%E6%80%BB%E7%BB%93/">C++与Lua交互总结 <small>Lua</small></a></li><li><a href="/LycTechStack.github.io/2023/03/16/20230316-%E5%AE%89%E5%85%A8%E7%BC%96%E7%A0%81-%E5%B9%B6%E5%8F%91%E5%92%8C%E5%A4%9A%E7%BA%BF%E7%A8%8B/">【安全编码】并发和多线程 <small>C和C++安全编码</small></a></li><li><a href="/LycTechStack.github.io/2023/03/16/20230316-%E5%AE%89%E5%85%A8%E7%BC%96%E7%A0%81-%E6%95%B4%E6%95%B0%E5%AE%89%E5%85%A8/">【安全编码】整数安全 <small>C和C++安全编码</small></a></li><li><a href="/LycTechStack.github.io/2023/03/16/20230316-%E5%AE%89%E5%85%A8%E7%BC%96%E7%A0%81-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/">【安全编码】内存管理 <small>C和C++安全编码</small></a></li><li><a href="/LycTechStack.github.io/2023/03/16/20230316-%E5%AE%89%E5%85%A8%E7%BC%96%E7%A0%81-%E5%AD%97%E7%AC%A6%E4%B8%B2/">【安全编码】字符串 <small>C和C++安全编码</small></a></li><li><a href="/LycTechStack.github.io/2023/03/09/20230309-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E5%85%B6%E4%BB%96%E5%B8%B8%E7%94%A8%E6%A8%A1%E5%BC%8F%E5%8F%8A%E6%80%BB%E7%BB%93/">【设计模式】其他常用模式及总结 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/08/20230308-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E5%A4%8D%E5%90%88%E6%A8%A1%E5%BC%8F/">【设计模式】复合模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/08/20230308-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F/">【设计模式】代理模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/07/20230307-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E7%8A%B6%E6%80%81%E6%A8%A1%E5%BC%8F/">【设计模式】状态模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/07/20230307-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E8%BF%AD%E4%BB%A3%E5%99%A8%E6%A8%A1%E5%BC%8F%E5%92%8C%E7%BB%84%E5%90%88%E6%A8%A1%E5%BC%8F/">【设计模式】迭代器模式和组合模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/05/20230305-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E6%A8%A1%E6%9D%BF%E6%96%B9%E6%B3%95%E6%A8%A1%E5%BC%8F/">【设计模式】模板方法模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/05/20230305-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E9%80%82%E9%85%8D%E5%99%A8%E6%A8%A1%E5%BC%8F%E5%92%8C%E5%A4%96%E8%A7%82%E6%A8%A1%E5%BC%8F/">【设计模式】适配器模式和外观模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/05/20230305-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E5%91%BD%E4%BB%A4%E6%A8%A1%E5%BC%8F/">【设计模式】命令模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/04/20230304-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F/">【设计模式】单例模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/04/20230304-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E5%B7%A5%E5%8E%82%E6%A8%A1%E5%BC%8F/">【设计模式】工厂模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/02/20230302-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E8%A3%85%E9%A5%B0%E8%80%85%E6%A8%A1%E5%BC%8F/">【设计模式】装饰者模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/02/20230302-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E8%A7%82%E5%AF%9F%E8%80%85%E6%A8%A1%E5%BC%8F/">【设计模式】观察者模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/02/28/20230228-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E7%AD%96%E7%95%A5%E6%A8%A1%E5%BC%8F/">【设计模式】策略模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2022/08/07/20220807-%E9%81%AE%E6%8C%A1%E5%89%94%E9%99%A4%E6%80%BB%E7%BB%93/">【Real-Time Rendering】遮挡剔除总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/08/07/20220807-UE%E6%B8%B2%E6%9F%93%E4%BD%93%E7%B3%BB-%E7%9B%AE%E5%BD%95%E7%B4%A2%E5%BC%95/">【UE渲染体系】目录索引 <small>虚幻引擎渲染体系</small></a></li><li><a href="/LycTechStack.github.io/2022/07/25/20220725-Piccolo-%E6%B8%B2%E6%9F%93%E7%B3%BB%E7%BB%9F%EF%BC%88%E4%B8%89%EF%BC%89%E5%B8%A7%E8%B0%83%E8%AF%95/">【Piccolo代码解读】渲染系统（三）帧调试 <small>Piccolo引擎代码解读</small></a></li><li><a href="/LycTechStack.github.io/2022/07/23/20220723-%E6%B8%B2%E6%9F%93%E5%99%A8-%E6%9C%80%E7%BB%88%E7%89%88%E8%AF%B4%E6%98%8E%E6%96%87%E6%A1%A3/">【光栅化渲染器】最终版说明文档 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/07/17/20220717-Vulkan-Vulkan%E8%B5%84%E6%BA%90%E7%BB%91%E5%AE%9A%E5%92%8C%E7%8A%B6%E6%80%81%E7%AE%A1%E7%90%86/">【Vulkan】资源绑定和状态管理 <small>Vulkan</small></a></li><li><a href="/LycTechStack.github.io/2022/07/17/20220717-Vulkan-Vulkan%E6%98%BE%E7%A4%BA%E4%B8%8E%E7%BB%98%E5%88%B6/">【Vulkan】显示与绘制 <small>Vulkan</small></a></li><li><a href="/LycTechStack.github.io/2022/07/17/20220717-Vulkan-Vulkan%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/">【Vulkan】内存管理 <small>Vulkan</small></a></li><li><a href="/LycTechStack.github.io/2022/07/17/20220717-Vulkan-Vulkan%E5%A4%9A%E7%BA%BF%E7%A8%8B%E6%B8%B2%E6%9F%93/">【Vulkan】多线程渲染 <small>Vulkan</small></a></li><li><a href="/LycTechStack.github.io/2022/07/16/20220716-Vulkan-Vulkan%E5%AF%B9%E8%B1%A1%E6%80%BB%E7%BB%93/">【Vulkan】常用组件总结 <small>Vulkan</small></a></li><li><a href="/LycTechStack.github.io/2022/07/13/20220713-Piccolo-%E6%B8%B2%E6%9F%93%E7%B3%BB%E7%BB%9F%EF%BC%88%E4%BA%8C%EF%BC%89%E6%B8%B2%E6%9F%93%E8%B7%AF%E5%BE%84%E7%9A%84%E5%AE%9E%E7%8E%B0/">【Piccolo代码解读】渲染系统（二）渲染路径的实现 <small>Piccolo引擎代码解读</small></a></li><li><a href="/LycTechStack.github.io/2022/07/04/20220704-GameEngine-%E6%B8%B8%E6%88%8F%E5%BC%95%E6%93%8E%E4%B8%AD%E7%9A%84%E7%89%A9%E7%90%86%E7%B3%BB%E7%BB%9F/">【游戏引擎】（四）游戏引擎中的物理系统 <small>游戏引擎</small></a></li><li><a href="/LycTechStack.github.io/2022/07/03/20220703-GPU%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/">GPU架构深度解析 <small>知识汇总</small></a></li><li><a href="/LycTechStack.github.io/2022/07/03/20220703-GameEngine-%E6%B8%B8%E6%88%8F%E5%BC%95%E6%93%8E%E4%B8%AD%E7%9A%84%E5%8A%A8%E7%94%BB%E7%B3%BB%E7%BB%9F/">【游戏引擎】（三）游戏引擎中的动画系统 <small>游戏引擎</small></a></li><li><a href="/LycTechStack.github.io/2022/07/02/20220702-%E7%9F%A5%E8%AF%86%E6%B1%87%E6%80%BB-%E5%9B%BE%E5%BD%A2%E5%AD%A6%E9%83%A8%E5%88%86/">【知识汇总】图形学和API相关 <small>知识汇总</small></a></li><li><a href="/LycTechStack.github.io/2022/06/28/20220628-%E7%9F%A5%E8%AF%86%E6%B1%87%E6%80%BB-3D%E6%95%B0%E5%AD%A6%E9%83%A8%E5%88%86/">【知识汇总】数学相关 <small>知识汇总</small></a></li><li><a href="/LycTechStack.github.io/2022/06/25/20220626-%E7%9F%A5%E8%AF%86%E6%B1%87%E6%80%BB-C++%E9%83%A8%E5%88%86/">【知识汇总】C++相关 <small>知识汇总</small></a></li><li><a href="/LycTechStack.github.io/2022/06/18/20220618-Pilot-%E6%B8%B2%E6%9F%93%E7%B3%BB%E7%BB%9F%EF%BC%88%E4%B8%80%EF%BC%89%E6%B8%B2%E6%9F%93%E6%B5%81%E7%A8%8B/">【Piccolo代码解读】渲染系统（一）渲染流程 <small>Piccolo引擎代码解读</small></a></li><li><a href="/LycTechStack.github.io/2022/06/17/20220617-Pilot-%E6%95%B4%E4%BD%93%E6%A1%86%E6%9E%B6%E4%B8%8E%E4%BB%A3%E7%A0%81%E5%8F%8D%E5%B0%84/">【Piccolo代码解读】整体框架与反射机制 <small>Piccolo引擎代码解读</small></a></li><li><a href="/LycTechStack.github.io/2022/06/09/20220609-GAMES202-%E5%AE%9E%E6%97%B6%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA/">【高质量实时渲染】实时光线追踪 <small>高质量实时渲染</small></a></li><li><a href="/LycTechStack.github.io/2022/06/08/20220608-GAMES202-%E5%AE%9E%E6%97%B6PBR%E6%9D%90%E8%B4%A8/">【高质量实时渲染】实时PBR材质 <small>高质量实时渲染</small></a></li><li><a href="/LycTechStack.github.io/2022/06/05/20220605-GAMES202-%E5%AE%9E%E6%97%B6%E5%85%A8%E5%B1%80%E5%85%89%E7%85%A7/">【高质量实时渲染】实时全局光照 <small>高质量实时渲染</small></a></li><li><a href="/LycTechStack.github.io/2022/06/02/20220602-GAMES202-%E5%AE%9E%E6%97%B6%E7%8E%AF%E5%A2%83%E5%85%89%E7%85%A7/">【高质量实时渲染】实时环境光照 <small>高质量实时渲染</small></a></li><li><a href="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/">【高质量实时渲染】实时阴影 <small>高质量实时渲染</small></a></li><li><a href="/LycTechStack.github.io/2022/05/26/20220526-GameEngine-%E6%B8%B8%E6%88%8F%E5%BC%95%E6%93%8E%E4%B8%AD%E7%9A%84%E6%B8%B2%E6%9F%93%E7%B3%BB%E7%BB%9F/">【游戏引擎】（二）游戏引擎中的渲染系统 <small>游戏引擎</small></a></li><li><a href="/LycTechStack.github.io/2022/05/25/20220525-%E9%80%8F%E8%A7%86%E6%8F%92%E5%80%BC%E6%A0%A1%E6%AD%A3/">关于透视插值校正 <small></small></a></li><li><a href="/LycTechStack.github.io/2022/05/25/20220525-%E6%B8%B2%E6%9F%93%E5%99%A8-%E6%94%B9%E8%BF%9B%E5%85%89%E6%A0%85%E5%8C%96/">【光栅化渲染器】（九）改进光栅化 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/25/20220525-%E6%B8%B2%E6%9F%93%E5%99%A8-%E5%85%89%E6%BA%90/">【光栅化渲染器】（八）光源 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/24/20220524-%E6%B8%B2%E6%9F%93%E5%99%A8-%E5%8A%A0%E8%BD%BD%E6%A8%A1%E5%9E%8B/">【光栅化渲染器】（七）加载模型 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/24/20220524-%E6%B8%B2%E6%9F%93%E5%99%A8-%E5%89%94%E9%99%A4%E4%B8%8E%E8%A3%81%E5%89%AA/">【光栅化渲染器】（六）剔除与裁剪 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/23/20220523-%E6%B8%B2%E6%9F%93%E5%99%A8-%E7%9B%B8%E6%9C%BA/">【光栅化渲染器】（五）相机 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/22/20220522-%E6%B8%B2%E6%9F%93%E5%99%A8-%E7%BA%B9%E7%90%86/">【光栅化渲染器】（四）纹理 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/21/20220521-%E6%B8%B2%E6%9F%93%E5%99%A8-%E5%8F%98%E6%8D%A2%E4%B8%8E%E6%B7%B1%E5%BA%A6%E6%B5%8B%E8%AF%95/">【光栅化渲染器】（三）变换与深度测试 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/20/20220520-%E6%B8%B2%E6%9F%93%E5%99%A8-%E6%A1%86%E6%9E%B6%E6%90%AD%E5%BB%BA/">【光栅化渲染器】（二）框架搭建 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/19/20220519-%E6%B8%B2%E6%9F%93%E5%99%A8-%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE/">【光栅化渲染器】（一）环境配置 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/18/20220518-RTR-%E6%B8%B2%E6%9F%93%E5%8A%A0%E9%80%9F%E6%8A%80%E6%9C%AF%E6%80%BB%E7%BB%93/">【Real-Time Rendering】渲染加速技术总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/18/20220518-RTR-%E9%9D%9E%E7%9C%9F%E5%AE%9E%E6%84%9F%E6%B8%B2%E6%9F%93%E6%8A%80%E6%9C%AF%E6%80%BB%E7%BB%93/">【Real-Time Rendering】非真实感渲染总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/18/20220518-RTR-%E5%9F%BA%E4%BA%8E%E5%9B%BE%E5%83%8F%E7%9A%84%E6%B8%B2%E6%9F%93%E6%8A%80%E6%9C%AF%E6%80%BB%E7%BB%93/">【Real-Time Rendering】基于图像的渲染技术总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/18/20220518-RTR-%E5%85%A8%E5%B1%80%E5%85%89%E7%85%A7%E6%80%BB%E7%BB%93/">【Real-Time Rendering】全局光照总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/">【Real-Time Rendering】延迟渲染总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/16/20220516-RTR-BRDF%E6%80%BB%E7%BB%93/">【Real-Time Rendering】BRDF总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/15/20220515-RTR-%E7%A8%8B%E5%BA%8F%E5%99%AA%E5%A3%B0%E6%80%BB%E7%BB%93/">【Real-Time Rendering】程序噪声总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/15/20220515-RTR-%E7%BA%B9%E7%90%86%E6%80%BB%E7%BB%93/">【Real-Time Rendering】纹理总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/14/20220514-RTR-%E6%A8%A1%E6%9D%BF%E6%B5%8B%E8%AF%95%E5%92%8C%E6%B7%B1%E5%BA%A6%E6%B5%8B%E8%AF%95/">【Real-Time Rendering】模板测试和深度测试 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/13/20220513-RTR-%E5%9B%BE%E5%BD%A2%E6%B8%B2%E6%9F%93%E5%92%8C%E8%A7%86%E8%A7%89%E5%A4%96%E8%A7%82/">【Real-Time Rendering】图形渲染和视觉处理 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/13/20220513-RTR-GPU%E7%AE%A1%E7%BA%BF/">【Real-Time Rendering】GPU管线 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/12/20220512-RTR-%E5%9B%BE%E5%BD%A2%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF/">【Real-Time Rendering】图形渲染管线 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/11/20220511-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B-%E6%A8%A1%E6%9D%BF%E5%92%8CRTTI/">【C++对象模型】（七）模板和RTTI <small>深度探索C++对象模型</small></a></li><li><a href="/LycTechStack.github.io/2022/05/11/20220511-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B-%E5%85%B3%E4%BA%8E%E6%89%A7%E8%A1%8C%E6%9C%9F/">【C++对象模型】（六）关于执行期 <small>深度探索C++对象模型</small></a></li><li><a href="/LycTechStack.github.io/2022/05/09/20220509-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B-%E5%AF%B9%E8%B1%A1%E5%A4%8D%E5%88%B6%E5%92%8C%E6%9E%90%E6%9E%84/">【C++对象模型】（五）对象复制和析构 <small>深度探索C++对象模型</small></a></li><li><a href="/LycTechStack.github.io/2022/05/09/20220509-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B-%E5%85%B3%E4%BA%8E%E5%87%BD%E6%95%B0%E6%88%90%E5%91%98/">【C++对象模型】（四）关于函数成员 <small>深度探索C++对象模型</small></a></li><li><a href="/LycTechStack.github.io/2022/05/07/20220507-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B-%E5%85%B3%E4%BA%8E%E6%95%B0%E6%8D%AE%E6%88%90%E5%91%98/">【C++对象模型】（三）关于数据成员 <small>深度探索C++对象模型</small></a></li><li><a href="/LycTechStack.github.io/2022/05/06/20220506-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B-%E5%85%B3%E4%BA%8E%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0/">【C++对象模型】（二）关于构造函数 <small>深度探索C++对象模型</small></a></li><li><a href="/LycTechStack.github.io/2022/05/05/20220505-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B-%E5%85%B3%E4%BA%8E%E5%AF%B9%E8%B1%A1/">【C++对象模型】（一）关于对象 <small>深度探索C++对象模型</small></a></li><li><a href="/LycTechStack.github.io/2022/05/03/20220503-STL-%E5%85%B3%E8%81%94%E5%BC%8F%E5%AE%B9%E5%99%A8/">【STL】关联式容器 <small>STL</small></a></li><li><a href="/LycTechStack.github.io/2022/04/30/20220430-STL-%E5%BA%8F%E5%88%97%E5%BC%8F%E5%AE%B9%E5%99%A8/">【STL】序列式容器 <small>STL</small></a></li><li><a href="/LycTechStack.github.io/2022/04/30/20220430-STL-%E8%BF%AD%E4%BB%A3%E5%99%A8/">【STL】迭代器 <small>STL</small></a></li><li><a href="/LycTechStack.github.io/2022/04/28/20220428-GameEngine-%E6%B8%B8%E6%88%8F%E5%BC%95%E6%93%8E%E6%9E%B6%E6%9E%84/">【游戏引擎】（一）游戏引擎架构 <small>游戏引擎</small></a></li><li><a href="/LycTechStack.github.io/2022/04/27/20220427-RayTracer-%E6%9C%80%E5%90%8E%E4%B8%80%E6%AD%A5/">【RayTracer】（二十二）最后一步 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/26/20220426-RayTracer-%E6%B7%B7%E5%90%88%E6%A6%82%E7%8E%87%E5%AF%86%E5%BA%A6/">【RayTracer】（二十一）混合概率密度 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/26/20220426-RayTracer-%E7%9B%B4%E6%8E%A5%E5%AF%B9%E5%85%89%E6%BA%90%E9%87%87%E6%A0%B7/">【RayTracer】（二十）直接对光源采样 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/24/20220424-RayTracer-%E9%9A%8F%E6%9C%BA%E6%96%B9%E5%90%91/">【RayTracer】（十九）随机方向 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/24/20220424-RayTracer-%E9%87%8D%E8%A6%81%E6%80%A7%E9%87%87%E6%A0%B7/">【RayTracer】（十八）重要性采样 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/22/20220422-RayTracer-%E6%96%B0%E7%89%B9%E6%80%A7%E6%9C%80%E7%BB%88%E5%9C%BA%E6%99%AF/">【RayTracer】（十七）新特性最终场景 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/22/20220422-RayTracer-%E5%8F%82%E4%B8%8E%E4%BB%8B%E8%B4%A8/">【RayTracer】（十六）参与介质 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/22/20220422-RayTracer-%E7%AB%8B%E6%96%B9%E4%BD%93%E5%92%8C%E5%8F%98%E6%8D%A2/">【RayTracer】（十五）立方体和变换 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/22/20220422-RayTracer-%E5%85%89%E6%BA%90/">【RayTracer】（十四）光源 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/22/20220422-%E8%83%8C%E5%8C%85%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/">【动态规划】（七）背包动态规划 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/04/21/20220421-RayTracer-%E5%9B%BE%E7%89%87%E7%BA%B9%E7%90%86/">【RayTracer】（十三）图片纹理 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/19/20220419-RayTracer-Perlin%E5%99%AA%E5%A3%B0/">【RayTracer】（十二）Perlin噪声 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/18/20220418-RayTracer-%E7%BA%B9%E7%90%86/">【RayTracer】（十一）纹理 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/18/20220418-RayTracer-%E5%AE%9E%E7%8E%B0BVH/">【RayTracer】（十）实现BVH <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/17/20220417-RayTracer-%E8%BF%90%E5%8A%A8%E6%A8%A1%E7%B3%8A/">【RayTracer】（九）运动模糊 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/16/20220416-RayTracer-%E6%9E%84%E5%BB%BA%E9%9A%8F%E6%9C%BA%E5%9C%BA%E6%99%AF/">【RayTracer】（八）构建随机场景 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/16/20220416-RayTracer-%E6%94%B9%E8%BF%9B%E7%9B%B8%E6%9C%BA/">【RayTracer】（七）景深效果 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/16/20220416-RayTracer-%E7%94%B5%E4%BB%8B%E8%B4%A8/">【RayTracer】（六）电介质 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/16/20220416-RayTracer-%E9%87%91%E5%B1%9E%E6%9D%90%E8%B4%A8/">【RayTracer】（五）金属材质 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/15/20220415-RayTracer-%E6%BC%AB%E5%8F%8D%E5%B0%84%E6%9D%90%E8%B4%A8/">【RayTracer】（四）漫反射材质 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/15/20220415-RayTracer-%E7%9B%B8%E6%9C%BA%E7%B1%BB%E5%92%8C%E5%8F%8D%E8%B5%B0%E6%A0%B7/">【RayTracer】（三）相机类和反走样 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/15/20220415-RayTracer-%E7%89%A9%E4%BD%93%E7%B1%BB/">【RayTracer】（二）实现物体类 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/13/20220413-%E6%8E%92%E5%BA%8F%E7%AE%97%E6%B3%95/">【算法】排序算法 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/04/11/20220411-RayTracer-%E5%9F%BA%E6%9C%AC%E5%B7%A5%E5%85%B7%E7%B1%BB/">【RayTracer】（一）实现基本工具类 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/10/20220410-Shader-%E5%99%AA%E5%A3%B0%E7%BA%B9%E7%90%86/">【Unity Shader】（十）噪声纹理 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/09/20220409-Shader-%E9%9D%9E%E7%9C%9F%E5%AE%9E%E6%84%9F%E6%B8%B2%E6%9F%93/">【Unity Shader】（九）非真实感渲染 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/09/20220409-Shader-%E9%AB%98%E7%BA%A7%E5%B1%8F%E5%B9%95%E7%89%B9%E6%95%88/">【Unity Shader】（八）高级屏幕特效 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/07/20220407-Shader-%E5%9F%BA%E7%A1%80%E5%B1%8F%E5%B9%95%E7%89%B9%E6%95%88/">【Unity Shader】（七）基础屏幕特效 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/07/20220407-Shader-%E5%8A%A8%E7%94%BB/">【Unity Shader】（六）动画 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/07/20220407-Shader-%E9%AB%98%E7%BA%A7%E7%BA%B9%E7%90%86/">【Unity Shader】（五）高级纹理 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/06/20220406-%E4%BC%98%E5%85%88%E9%98%9F%E5%88%97%E5%92%8C%E5%A0%86/">【数据结构】优先队列和堆 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/04/05/20220405-%E8%B4%AA%E5%BF%83%E7%AE%97%E6%B3%95/">【算法】贪心算法 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/04/04/20220404-Shader-%E9%98%B4%E5%BD%B1%E5%92%8C%E8%A1%B0%E5%87%8F/">【Unity Shader】（四）阴影和衰减 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/03/20220403-Shader-%E9%80%8F%E6%98%8E%E6%95%88%E6%9E%9C/">【Unity Shader】（三）透明效果 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/03/20220403-Shader-%E5%9F%BA%E7%A1%80%E7%BA%B9%E7%90%86/">【Unity Shader】（二）基础纹理 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/02/20220402-Shader-%E5%9F%BA%E7%A1%80%E5%85%89%E7%85%A7/">【Unity Shader】（一）基础光照 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/03/28/20220328-%E4%BA%8C%E5%88%86%E6%9F%A5%E6%89%BE/">【算法】二分查找 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/25/20220325-%E5%8C%BA%E9%97%B4%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/">【动态规划】（六）区间动态规划 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/24/20220324-%E6%B8%B2%E6%9F%93%E5%92%8C%E6%9D%90%E8%B4%A8%E5%89%8D%E6%B2%BF/">【计算机图形学】（十五）高级渲染和材质概述 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/24/20220324-%E6%9D%90%E8%B4%A8/">【计算机图形学】（十四）材质 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/">【计算机图形学】（十三）路径追踪 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/19/20220319-%E5%89%8D%E7%BC%80%E5%92%8C/">【动态规划】（五）前缀和 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/18/20220318-%E8%BE%90%E5%B0%84%E5%BA%A6%E9%87%8F%E5%AD%A6/">【计算机图形学】（十二）辐射度量学基础 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/17/20220317-Whitted%E9%A3%8E%E6%A0%BC%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA/">【计算机图形学】（十一）Whitted 风格光线追踪 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/15/20220315-%E7%BA%BF%E6%80%A7%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92-%E7%9F%A9%E9%98%B5%E5%92%8C%E6%97%A0%E4%B8%B2/">【动态规划】（四）线性动态规划之矩阵和无串问题 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/13/20220313-%E9%98%B4%E5%BD%B1/">【计算机图形学】（十）阴影 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/13/20220313-%E5%87%A0%E4%BD%95/">【计算机图形学】（九）几何 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/12/20220312-%E7%BA%BF%E6%80%A7%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92-%E5%8F%8C%E4%B8%B2/">【动态规划】（三）线性动态规划之双串问题 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/10/20220310-%E5%9B%BE%E5%BD%A2%E7%AE%A1%E7%BA%BF/">【计算机图形学】（八）图形管线 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/10/20220310-%E7%BA%B9%E7%90%86%E6%98%A0%E5%B0%84/">【计算机图形学】（七）纹理映射 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/10/20220310-%E7%BA%BF%E6%80%A7%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92-%E5%B8%A6%E7%BB%B4%E5%BA%A6%E5%8D%95%E4%B8%B2/">【动态规划】（二）线性动态规划之带维度单串问题 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/09/20220309-%E7%9D%80%E8%89%B2/">【计算机图形学】（六）着色 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/08/20220308-%E6%B7%B1%E5%BA%A6%E7%BC%93%E5%86%B2/">【计算机图形学】（五）深度缓冲 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/07/20220307-%E7%BA%BF%E6%80%A7%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92-%E5%8D%95%E4%B8%B2/">【动态规划】（一）线性动态规划之单串问题 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/06/20220306-%E5%8F%8D%E8%B5%B0%E6%A0%B7/">【计算机图形学】（四）反走样 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/">【计算机图形学】（三）光栅化 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/03/20220303-%E4%BA%8C%E5%8F%89%E6%A0%91/">【数据结构】二叉树 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/03/20200303-%E6%97%8B%E8%BD%AC%E4%B8%8E%E5%9B%9B%E5%85%83%E6%95%B0/">【计算机图形学】（二）旋转与四元数 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/02/20200302-%E5%8F%98%E6%8D%A2/">【计算机图形学】（一）变换 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/02/20220303-%E7%BA%BF%E6%80%A7%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/">【数据结构】线性数据结构 <small>数据结构与算法</small></a></li></ul></dialog>
+  <footer class="site-footer"><div class="wrap footer-inner">
+    <div class="footer-brand"><img src="/LycTechStack.github.io/images/journal/mark.svg" alt="" width="24" height="24"><strong>LycTechStack</strong><span>© 2021–2026 Lyc</span></div>
+    <div class="footer-links">
+      <a href="mailto:27487358@qq.com">联系作者</a>
+      <a href="/LycTechStack.github.io/atom.xml"><svg class="icon" width="14" height="14" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#rss"/></svg> RSS</a>
+      <a href="#top">返回顶部 ↑</a>
+    </div>
+  </div>
+  <div class="wrap footer-counts">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+  <span id="busuanzi_container_site_uv" style="display:none">访客 <span id="busuanzi_value_site_uv"></span></span>
+  <span id="busuanzi_container_site_pv" style="display:none">浏览 <span id="busuanzi_value_site_pv"></span></span>
 
+</div>
+  </footer>
+  
+    <dialog class="search-dialog" aria-labelledby="search-title" data-index="/LycTechStack.github.io/search.xml">
+  <div class="dialog-head"><h2 id="search-title">搜索笔记</h2><form method="dialog"><button class="icon-button" aria-label="关闭搜索"><svg class="icon" width="18" height="18" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#close"/></svg></button></form></div>
+  <label class="search-field"><svg class="icon" width="20" height="20" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#search"/></svg><input type="search" aria-label="搜索标题、标签或正文" placeholder="输入标题、标签或正文关键词…" autocomplete="off" spellcheck="false"></label>
+  <div class="search-suggestions"><p>常用标签</p><div class="tag-cloud"><button type="button" data-query="计算机图形学"># 计算机图形学</button><button type="button" data-query="C++"># C++</button><button type="button" data-query="实时渲染"># 实时渲染</button><button type="button" data-query="光线追踪"># 光线追踪</button><button type="button" data-query="游戏引擎"># 游戏引擎</button><button type="button" data-query="设计模式"># 设计模式</button></div></div>
+  <p class="search-status" role="status"></p><ol class="search-results"></ol>
+</dialog>
+
+    <script defer src="/LycTechStack.github.io/js/journal-search.js"></script>
+  
+  
+    
+<script src="/LycTechStack.github.io/js/utils.js"></script>
+
+  
+  
+  
 
   
       
@@ -170,4 +325,5 @@
 
     
 
-</body></html>
+</body>
+</html>
