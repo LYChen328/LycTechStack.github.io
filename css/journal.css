@@ -525,12 +525,9 @@ body:has(.search-dialog[open]) { overflow: hidden; }
   .map-note { font-size: 11px; gap: 5px; }
   .map-note span { padding: 4px 6px; }
   .map-key { bottom: 11px; }
-  .atlas-columns { display: block; padding-block: 7px; }
-  .atlas-column { display: grid; grid-template-columns: 94px minmax(0,1fr); align-items: baseline; gap: 4px; padding-block: 5px; }
-  .atlas-column + .atlas-column { border-top: 1px solid #263b46; }
-  .atlas-column ul { margin: 0; gap: 0 13px; }
-  .atlas-column h2 { gap: 7px; font-size: 12px; white-space: nowrap; }
-  .atlas-column a { min-height: 38px; }
+}
+@media (max-width: 740px), (orientation: landscape) and (pointer: coarse) and (max-height: 500px) {
+  .hero .atlas-index, .map-branches { display: none; }
 }
 @media (pointer: coarse) {
   .map-branches a { min-height: 36px; }
