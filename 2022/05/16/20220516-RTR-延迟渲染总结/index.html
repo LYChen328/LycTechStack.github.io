@@ -1,293 +1,43 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
-<meta name="theme-color" content="#222">
-<meta name="generator" content="Hexo 5.4.1">
-  <link rel="apple-touch-icon" sizes="180x180" href="/LycTechStack.github.io/images/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/LycTechStack.github.io/images/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/LycTechStack.github.io/images/favicon-16x16.png">
-  <link rel="mask-icon" href="/LycTechStack.github.io/images/safari-pinned-tab.svg" color="#222">
-
-<link rel="stylesheet" href="/LycTechStack.github.io/css/main.css">
-
-
-<link rel="stylesheet" href="/LycTechStack.github.io/lib/font-awesome/css/all.min.css">
-  <link rel="stylesheet" href="/LycTechStack.github.io/lib/pace/pace-theme-minimal.min.css">
-  <script src="/LycTechStack.github.io/lib/pace/pace.min.js"></script>
-
-<script id="hexo-configurations">
-    var NexT = window.NexT || {};
-    var CONFIG = {"hostname":"lz328.github.io","root":"/LycTechStack.github.io/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":true,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":null,"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":5,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
-  </script>
-
-  <meta name="description" content="本篇对《Real-Time Rendering》一书中延迟渲染相关知识进行概括总结和扩展。主要内容包括：  延迟渲染的概念、G-buffer、延迟渲染的过程 延迟渲染 vs 正向渲染、延迟渲染 vs Z-Prepass 延迟渲染的优缺点、延迟渲染透明物体、延迟渲染与 MSAA 延迟渲染的改进：延迟光照（Light Pre-Pass &#x2F; Deferred Lighting）、分块延迟渲染（">
-<meta property="og:type" content="article">
-<meta property="og:title" content="【Real-Time Rendering】延迟渲染总结">
-<meta property="og:url" content="https://lz328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/index.html">
-<meta property="og:site_name" content="LycTechStack">
-<meta property="og:description" content="本篇对《Real-Time Rendering》一书中延迟渲染相关知识进行概括总结和扩展。主要内容包括：  延迟渲染的概念、G-buffer、延迟渲染的过程 延迟渲染 vs 正向渲染、延迟渲染 vs Z-Prepass 延迟渲染的优缺点、延迟渲染透明物体、延迟渲染与 MSAA 延迟渲染的改进：延迟光照（Light Pre-Pass &#x2F; Deferred Lighting）、分块延迟渲染（">
-<meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://lz328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516150601199.png">
-<meta property="og:image" content="https://lz328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516151041625.png">
-<meta property="og:image" content="https://lz328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516151116425.png">
-<meta property="og:image" content="https://lz328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516151507237.png">
-<meta property="og:image" content="https://lz328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516152551865.png">
-<meta property="og:image" content="https://lz328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516152925120.png">
-<meta property="og:image" content="https://lz328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516161128767.png">
-<meta property="og:image" content="https://lz328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516162715482.png">
-<meta property="og:image" content="https://lz328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516164106531.png">
-<meta property="og:image" content="https://lz328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/1617944-20190906002505353-1795972401.png">
-<meta property="og:image" content="https://lz328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516165141752.png">
-<meta property="og:image" content="https://lz328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516165158816.png">
-<meta property="article:published_time" content="2022-05-16T08:56:09.000Z">
-<meta property="article:modified_time" content="2022-07-03T10:23:33.114Z">
-<meta property="article:author" content="Lyc">
-<meta property="article:tag" content="计算机图形学">
-<meta property="article:tag" content="实时渲染">
-<meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://lz328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516150601199.png">
-
-<link rel="canonical" href="https://lz328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/">
-
-
-<script id="page-configurations">
-  // https://hexo.io/docs/variables.html
-  CONFIG.page = {
-    sidebar: "",
-    isHome : false,
-    isPost : true,
-    lang   : 'zh-CN'
-  };
-</script>
-
-  <title>【Real-Time Rendering】延迟渲染总结 | LycTechStack</title>
-  
-
-
-
-
-
-
-  <noscript>
-  <style>
-  .use-motion .brand,
-  .use-motion .menu-item,
-  .sidebar-inner,
-  .use-motion .post-block,
-  .use-motion .pagination,
-  .use-motion .comments,
-  .use-motion .post-header,
-  .use-motion .post-body,
-  .use-motion .collection-header { opacity: initial; }
-
-  .use-motion .site-title,
-  .use-motion .site-subtitle {
-    opacity: initial;
-    top: initial;
-  }
-
-  .use-motion .logo-line-before i { left: initial; }
-  .use-motion .logo-line-after i { right: initial; }
-  </style>
-</noscript>
-
-<link rel="alternate" href="/LycTechStack.github.io/atom.xml" title="LycTechStack" type="application/atom+xml">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>【Real-Time Rendering】延迟渲染总结 · LycTechStack</title>
+  <link rel="canonical" href="https://lychen328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/">
+  <link rel="alternate" type="application/atom+xml" href="/LycTechStack.github.io/atom.xml">
+  <script>try { const mode = localStorage.getItem('studio-appearance'); if (mode) document.documentElement.dataset.mode = mode; } catch {}</script>
+  <link rel="stylesheet" href="/LycTechStack.github.io/studio/studio.css">
+  <script defer src="/LycTechStack.github.io/studio/studio.js"></script>
+  <script defer src="/LycTechStack.github.io/studio/stars.js"></script>
 </head>
-
-<body itemscope itemtype="http://schema.org/WebPage">
-  <div class="container use-motion">
-    <div class="headband"></div>
-
-    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
-      <div class="header-inner"><div class="site-brand-container">
-  <div class="site-nav-toggle">
-    <div class="toggle" aria-label="切换导航栏">
-      <span class="toggle-line toggle-line-first"></span>
-      <span class="toggle-line toggle-line-middle"></span>
-      <span class="toggle-line toggle-line-last"></span>
-    </div>
+<body>
+<a class="skip" href="#main">跳到正文</a>
+<header class="mast"><div class="mast-inner">
+  <a class="brand" href="/LycTechStack.github.io/"><span class="brand-icon" aria-hidden="true">✴︎</span>LycTechStack</a>
+  <nav aria-label="主导航">
+    <a  href="/LycTechStack.github.io/">首页</a>
+    <a  href="/LycTechStack.github.io/archives/">文章目录</a>
+    <a  href="/LycTechStack.github.io/categories/">专题</a>
+  </nav>
+  <div class="actions">
+    <button type="button" data-search aria-label="搜索文章"><i class="glass"></i></button>
+    <button type="button" data-mode aria-label="切换明暗模式"><i class="mode-icon"></i></button>
   </div>
-
-  <div class="site-meta">
-
-    <a href="/LycTechStack.github.io/" class="brand" rel="start">
-      <span class="logo-line-before"><i></i></span>
-      <h1 class="site-title">LycTechStack</h1>
-      <span class="logo-line-after"><i></i></span>
-    </a>
-      <p class="site-subtitle" itemprop="description">Lyc的个人成长技术栈</p>
-  </div>
-
-  <div class="site-nav-right">
-    <div class="toggle popup-trigger">
-        <i class="fa fa-search fa-fw fa-lg"></i>
-    </div>
-  </div>
+</div></header>
+<main id="main">
+<header class="sky article-hero">
+  <canvas class="starfield" aria-hidden="true"></canvas>
+  <div class="hero-copy"><p class="sky-kicker"><a href="/LycTechStack.github.io/categories/Real-Time-Rendering/">Real-Time Rendering</a> </p>
+    <h1>【Real-Time Rendering】延迟渲染总结</h1>
+    <p class="deck">Lyc　·　<time>2022 年 5 月 16 日</time>　·　8 分钟</p>
+  </div><div class="sky-foot"><a href="#reading">开始阅读 ↓</a><button class="motion" type="button" data-motion aria-label="暂停星空动画" aria-pressed="false" title="暂停星空动画"><span aria-hidden="true">Ⅱ</span></button>
 </div>
-
-
-
-
-<nav class="site-nav">
-  <ul id="menu" class="main-menu menu">
-        <li class="menu-item menu-item-home">
-
-    <a href="/LycTechStack.github.io/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
-
-  </li>
-        <li class="menu-item menu-item-tags">
-
-    <a href="/LycTechStack.github.io/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
-
-  </li>
-        <li class="menu-item menu-item-categories">
-
-    <a href="/LycTechStack.github.io/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
-
-  </li>
-        <li class="menu-item menu-item-archives">
-
-    <a href="/LycTechStack.github.io/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
-
-  </li>
-        <li class="menu-item menu-item-about">
-
-    <a href="/LycTechStack.github.io/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
-
-  </li>
-      <li class="menu-item menu-item-search">
-        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
-        </a>
-      </li>
-  </ul>
-</nav>
-
-
-
-  <div class="search-pop-overlay">
-    <div class="popup search-popup">
-        <div class="search-header">
-  <span class="search-icon">
-    <i class="fa fa-search"></i>
-  </span>
-  <div class="search-input-container">
-    <input autocomplete="off" autocapitalize="off"
-           placeholder="搜索..." spellcheck="false"
-           type="search" class="search-input">
-  </div>
-  <span class="popup-btn-close">
-    <i class="fa fa-times-circle"></i>
-  </span>
-</div>
-<div id="search-result">
-  <div id="no-result">
-    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
-  </div>
-</div>
-
-    </div>
-  </div>
-
-</div>
-    </header>
-
-    
-  <div class="back-to-top">
-    <i class="fa fa-arrow-up"></i>
-    <span>0%</span>
-  </div>
-  <div class="reading-progress-bar"></div>
-
-
-    <main class="main">
-      <div class="main-inner">
-        <div class="content-wrap">
-          
-
-          <div class="content post posts-expand">
-            
-
-    
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://lz328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/LycTechStack.github.io/images/avatar.png">
-      <meta itemprop="name" content="Lyc">
-      <meta itemprop="description" content="Take time to see the world, to renew self, and to enjoy the game-like life!">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="LycTechStack">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          【Real-Time Rendering】延迟渲染总结
-        </h1>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2022-05-16 16:56:09" itemprop="dateCreated datePublished" datetime="2022-05-16T16:56:09+08:00">2022-05-16</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-07-03 18:23:33" itemprop="dateModified" datetime="2022-07-03T18:23:33+08:00">2022-07-03</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/LycTechStack.github.io/categories/Real-Time-Rendering/" itemprop="url" rel="index"><span itemprop="name">Real-Time Rendering</span></a>
-                </span>
-            </span>
-
-          
-            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-eye"></i>
-              </span>
-              <span class="post-meta-item-text">阅读次数：</span>
-              <span id="busuanzi_value_page_pv"></span>
-            </span><br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>8.3k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>8 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-        <p>本篇对《Real-Time Rendering》一书中延迟渲染相关知识进行概括总结和扩展。主要内容包括：</p>
+</header>
+<div class="reading" id="reading">
+  <canvas class="starfield margin-stars" aria-hidden="true"></canvas>
+  <div class="reader wrap">
+    <aside><details class="outline" open><summary>本篇目录</summary><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%EF%BC%88Deferred-Rendering%EF%BC%89"><span class="toc-text">1 延迟渲染（Deferred Rendering）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E5%87%A0%E4%BD%95%E7%BC%93%E5%86%B2%E5%8C%BA%EF%BC%88G-buffer%EF%BC%89"><span class="toc-text">2 几何缓冲区（G-buffer）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E7%9A%84%E8%BF%87%E7%A8%8B"><span class="toc-text">3 延迟渲染的过程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93-vs-%E6%AD%A3%E5%90%91%E6%B8%B2%E6%9F%93"><span class="toc-text">4 延迟渲染 vs 正向渲染</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#4-1-%E6%AD%A3%E5%90%91%E6%B8%B2%E6%9F%93"><span class="toc-text">4.1 正向渲染</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-2-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93"><span class="toc-text">4.2 延迟渲染</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-3-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93-vs-Z-Prepass"><span class="toc-text">4.3 延迟渲染 vs Z-Prepass</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E7%9A%84%E4%BC%98%E7%BC%BA%E7%82%B9"><span class="toc-text">5 延迟渲染的优缺点</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#5-1-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E7%9A%84%E4%BC%98%E7%82%B9"><span class="toc-text">5.1 延迟渲染的优点</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#5-2-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E7%9A%84%E7%BC%BA%E7%82%B9"><span class="toc-text">5.2 延迟渲染的缺点</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E9%80%8F%E6%98%8E%E7%89%A9%E4%BD%93"><span class="toc-text">6 延迟渲染透明物体</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E4%B8%8E-MSAA"><span class="toc-text">7 延迟渲染与 MSAA</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#8-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E7%9A%84%E6%94%B9%E8%BF%9B"><span class="toc-text">8 延迟渲染的改进</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#8-1-%E5%BB%B6%E8%BF%9F%E5%85%89%E7%85%A7"><span class="toc-text">8.1 延迟光照</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#8-2-%E5%88%86%E5%9D%97%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93"><span class="toc-text">8.2 分块延迟渲染</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#9-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93-vs-%E5%BB%B6%E8%BF%9F%E5%85%89%E7%85%A7"><span class="toc-text">9 延迟渲染 vs 延迟光照</span></a></li></ol></details></aside>
+    <article class="prose"><p>本篇对《Real-Time Rendering》一书中延迟渲染相关知识进行概括总结和扩展。主要内容包括：</p>
 <ul>
 <li>延迟渲染的概念、G-buffer、延迟渲染的过程</li>
 <li>延迟渲染 vs 正向渲染、延迟渲染 vs Z-Prepass</li>
@@ -301,18 +51,18 @@
 <p>传统的正向渲染思路是，先进行着色，再进行深度测试。其主要缺点就是光照计算跟场景复杂度和光源个数有很大关系。假设有 n 个物体，m 个光源，且每个每个物体受所有光源的影响，那么复杂度就是 O(m*n)。</p>
 <p>正向渲染简单直接，也很容易实现，但是同时它对程序性能的影响也很大，因为对每一个需要渲染的物体，程序都要对每个光源下每一个需要渲染的片元进行迭代，如果旧的片元完全被一些新的片元覆盖，最终无需显示出来，那么其着色计算花费的时间就完全浪费掉了。</p>
 <p>而延迟渲染的提出，就是为了解决上述问题而诞生（尤其是在场景中存在大量光源的情况下）。延迟渲染给我们优化拥有大量光源的场景提供了很多可能性，因为它能够在渲染拥有成百上千光源的场景的同时还能够保持能让人接受的帧率。下面这张图展示了一个基于延迟着色渲染出的场景，这个场景中包含了 1000 个点光源，对于目前的硬件设备而言，用传统的正向渲染来实现将是极其耗时的。</p>
-<p><img src="https://lz328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516150601199.png" alt="image-20220516150601199"></p>
+<p><img src="/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516150601199.png" alt="image-20220516150601199"></p>
 <p><strong>可以将延迟渲染理解为先将所有物体都绘制到屏幕空间的缓冲（即  G-buffer，Geometric Buffer，几何缓冲区）中，再逐光源对该缓冲进行着色的过程，从而避免了因计算被深度测试丢弃的片元的着色而产⽣的不必要的开销。</strong>也就是说延迟渲染基本思想是，先执行深度测试，再进行着色计算，将本来在物空间（三维空间）进行的光照计算放到了像空间（二维空间）处理。相较于正向渲染 O(m*n) 的复杂度，经典的延迟渲染复杂度为 O(n+m)。</p>
 <h3 id="2-几何缓冲区（G-buffer）"><a href="#2-几何缓冲区（G-buffer）" class="headerlink" title="2 几何缓冲区（G-buffer）"></a>2 几何缓冲区（G-buffer）</h3><p>G-Buffer，全称 Geometric Buffer，几何缓冲区。它主要用于存储每个像素对应的位置（Position），法线（Normal），漫反射颜色（Diffuse Color）以及其他有用的材质参数。根据这些信息，就可以在像空间（二维空间）中对每个像素进行光照处理。下图展示了一个典型的 G-Buffer 布局：</p>
-<p><img src="https://lz328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516151041625.png" alt="image-20220516151041625"></p>
+<p><img src="/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516151041625.png" alt="image-20220516151041625"></p>
 <p>下图是一帧中 G-Buffer 中存储的部分内容可视化结果：</p>
-<p><img src="https://lz328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516151116425.png" alt="image-20220516151116425"></p>
+<p><img src="/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516151116425.png" alt="image-20220516151116425"></p>
 <p>G-Buffer 是一个宏观的概念，并不是一整个缓冲区，而是由多个缓冲区共同组成，或者由多张纹理共同组成，比如后文会提到的 MRT，就是将不同的信息渲染到多个纹理，这些纹理被称为渲染目标（Render Targte，RT），这些 RT 共同组成了 G-Buffer。</p>
 <h3 id="3-延迟渲染的过程"><a href="#3-延迟渲染的过程" class="headerlink" title="3 延迟渲染的过程"></a>3 延迟渲染的过程</h3><p>可以将延迟渲染理解为两个 Pass 的过程：</p>
 <p>1、<strong>几何处理阶段（Geometry Pass）</strong>。这个阶段中，我们获取对象的各种几何信息，并将第二步（也就是渲染）所需的各种数据储存到多个渲染目标中；</p>
 <p>2、<strong>光照处理阶段（Lighting Pass）</strong>。在这个 pass 中，我们只需渲染出一个屏幕大小的二维矩形，使用第一步在 G-buffer 中存储的数据对此矩阵的每一个片元计算场景的光照；光照计算的过程还是和正向渲染一样，只是现在我们需要从对应的 G-buffer 而不是顶点着色器（和一些 uniform 变量）那里获取输入变量了。</p>
 <p>下图展示了延迟渲染的过程：</p>
-<p><img src="https://lz328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516151507237.png" alt="image-20220516151507237"></p>
+<p><img src="/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516151507237.png" alt="image-20220516151507237"></p>
 <p>延迟渲染方法一个很大的好处就是能保证在 G-buffer 中的片元和在屏幕上呈现的像素所包含的片元信息是一样的，因为深度测试已经最终将这里的片元信息作为最顶层的片元。这样保证了对于在光照处理阶段中处理的每一个像素都只处理一次，所以我们能够省下很多无用的渲染调用。除此之外，延迟渲染还允许我们做更多的优化，从而渲染更多的光源。</p>
 <p>在几何处理阶段中填充 G-buffer 非常高效，因为我们直接储存位置，颜色，法线等对象信息到帧缓冲中，这个过程几乎不消耗处理时间。</p>
 <p>对于多个光源的情况，不同的光源对场景的影响不同，所以 G-Buffer 中存储的片元信息也可能不同，因此我们可以对每个光源创建一个屏幕空间包围矩形，然后用光照 shader 渲染这个矩形，最后融合起来即可。</p>
@@ -329,7 +79,7 @@
 <ul>
 <li>Forward Rendering 的管线流程如下图所示：</li>
 </ul>
-<p><img src="https://lz328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516152551865.png" alt="image-20220516152551865"></p>
+<p><img src="/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516152551865.png" alt="image-20220516152551865"></p>
 <h4 id="4-2-延迟渲染"><a href="#4-2-延迟渲染" class="headerlink" title="4.2 延迟渲染"></a>4.2 延迟渲染</h4><ul>
 <li>延迟渲染（Deferred Rendering），先执行深度测试，再执行着色计算</li>
 <li>延迟渲染渲染 n 个物体在 m 个光源下的着色，复杂度为 O(n+m)</li>
@@ -341,8 +91,8 @@
 <ul>
 <li>Deferred Rendering 的管线流程如图所示：</li>
 </ul>
-<p><img src="https://lz328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516152925120.png" alt="image-20220516152925120"></p>
-<h4 id="4-3-延迟渲染-vs-Z-Prepass"><a href="#4-3-延迟渲染-vs-Z-Prepass" class="headerlink" title="4.3 延迟渲染 vs Z-Prepass"></a>4.3 延迟渲染 vs Z-Prepass</h4><p>延迟渲染和之前学过的 Early-Z 非常相似，二者的区别可以查看之前的笔记<a href="https://lz328.github.io/LycTechStack.github.io/2022/05/14/20220514-RTR-%E6%A8%A1%E6%9D%BF%E6%B5%8B%E8%AF%95%E5%92%8C%E6%B7%B1%E5%BA%A6%E6%B5%8B%E8%AF%95/">【Real-Time Rendering】模板测试和深度测试</a>的最后部分。</p>
+<p><img src="/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516152925120.png" alt="image-20220516152925120"></p>
+<h4 id="4-3-延迟渲染-vs-Z-Prepass"><a href="#4-3-延迟渲染-vs-Z-Prepass" class="headerlink" title="4.3 延迟渲染 vs Z-Prepass"></a>4.3 延迟渲染 vs Z-Prepass</h4><p>延迟渲染和之前学过的 Early-Z 非常相似，二者的区别可以查看之前的笔记<a href="https://lychen328.github.io/LycTechStack.github.io/2022/05/14/20220514-RTR-%E6%A8%A1%E6%9D%BF%E6%B5%8B%E8%AF%95%E5%92%8C%E6%B7%B1%E5%BA%A6%E6%B5%8B%E8%AF%95/">【Real-Time Rendering】模板测试和深度测试</a>的最后部分。</p>
 <h3 id="5-延迟渲染的优缺点"><a href="#5-延迟渲染的优缺点" class="headerlink" title="5 延迟渲染的优缺点"></a>5 延迟渲染的优缺点</h3><p>总结一下延迟渲染的优缺点。</p>
 <h4 id="5-1-延迟渲染的优点"><a href="#5-1-延迟渲染的优点" class="headerlink" title="5.1 延迟渲染的优点"></a>5.1 延迟渲染的优点</h4><ul>
 <li>Deferred Rendering 最大的优势就是将光源的数目和场景中物体的数目在复杂度层面上完全分开。也就是说场景中不管是一个三角形还是一百万个三角形，最后的复杂度不会随光源数目变化而产生巨大变化</li>
@@ -371,7 +121,7 @@
 <p>首先来回顾 MSAA 的原理，MSAA 是在 SSAA 的基础上发展来的硬件抗锯齿技术。SSAA 是理论上效果最好的抗锯齿方案，以 4x 为例（下同），4xSSAA 对于每个像素计算 4 个子像素，将 4 个子像素的颜色求平均值，便能获得抗锯齿后的颜色。实际上 SSAA 等于暴力渲染了 4 倍分辨率的图像，在目前的硬件条件下这种性能开销是不可接受的，因此在 SSAA 的基础上发展出了 MSAA。</p>
 <p>MSAA 与 SSAA 的区别在于像素着色器（Pixel Shader）的运行次数。MSAA 同样对于每个像素进行了 4 次子采样（Sample），但是只在像素中心位置运行一次像素着色，然后根据有多少 Sample 被三角形覆盖而对颜色进行一个加权处理，也就是像素中有多少子像素被三角形覆盖，就用该像素的颜色乘以被覆盖的子像素的比例，相比于 SSAA 每个子像素单独计算颜色，效率大幅提升。</p>
 <p>下面以一个例子来看 MSAA 的具体过程：</p>
-<p><img src="https://lz328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516161128767.png" alt="image-20220516161128767"></p>
+<p><img src="/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516161128767.png" alt="image-20220516161128767"></p>
 <p>在前向渲染中，三角形的绘制是依次进行的。绘制蓝色三角形时，MSAA 的具体执行步骤如下：</p>
 <ol>
 <li>光栅化阶段，对四个 X 位置的 Sample 执行三角形覆盖判断，在一个四倍分辨率大小的 coverage mask 中记录每个 Sample 被覆盖的情况；</li>
@@ -390,7 +140,7 @@
 <li>延迟渲染因为需要节省光照计算的原因，事先把所有信息都放在了 G-Buffer 上，着色计算的时候已经丢失了几何信息</li>
 </ul>
 <p>如果要在延迟渲染中使用 MSAA，需要将 G 缓存的 MRT 以多重采样的形式保存使得每个样本的信息不被丢失从而可以进行解析操作。而如果直接对 G 缓存中的属性比如法线和深度进行解析的话则可能产生错误结果，比如说如果一个给定像素中的样本在 G 缓存中有着不同的深度值，那么取均值后的结果可能和场景真实的几何信息无关，法线同理。正确的做法是对每个样本进行光照计算后再解析，对每个样本的光照结果取均值。因此需要保证像素着色器逐样本执行然后将每个样本输出写入多重采样RT。如下图所示。</p>
-<p><img src="https://lz328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516162715482.png" alt="image-20220516162715482"></p>
+<p><img src="/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516162715482.png" alt="image-20220516162715482"></p>
 <p>事实上，从 DirectX 10 开始就已经允许在高达 8 个 MRT 的情况下使用 MSAA 了。</p>
 <h3 id="8-延迟渲染的改进"><a href="#8-延迟渲染的改进" class="headerlink" title="8 延迟渲染的改进"></a>8 延迟渲染的改进</h3><p>上文提到过，延迟渲染的性能瓶颈在于读写 G-buffer 的内存带宽，因此延迟渲染的改进也主要是从这方面入手，下面简单介绍一些降低延迟渲染存取带宽的改进方案。最简单也是最容易想到的就是将存取的 G-Buffer 数据结构最小化，这也就衍生出了 Light Pre-Pass，即延迟光照（Deferred Lighting）方法。另一种方式是将多个光照组成一组，然后一起处理，这种方法衍生出了分块延迟渲染（Tile-Based Deferred Rendering）。</p>
 <h4 id="8-1-延迟光照"><a href="#8-1-延迟光照" class="headerlink" title="8.1 延迟光照"></a>8.1 延迟光照</h4><p>Light Pre-Pass 即 Deferred Lighting（延迟光照），旨在减少传统 Defferred Rendering 使用 G-buffer 时占用的过多开销，延迟光照的具体的思路是：</p>
@@ -406,9 +156,9 @@
 <h4 id="8-2-分块延迟渲染"><a href="#8-2-分块延迟渲染" class="headerlink" title="8.2 分块延迟渲染"></a>8.2 分块延迟渲染</h4><p>作为传统 Defferred Rendering 的另一种主要改进，分块延迟渲染（Tile-Based Deferred Rendering，TBDR）旨在合理分摊开销。实验数据表明 TBDR 在大量光源存在的情况下明显优于上述的 Light Pre-Pass。</p>
 <p>我们知道，延迟渲染的瓶颈在于读写 G-buffer，在大量光源下，具体的瓶颈将会在于每个光源对 G-buffer 的读取及与颜色缓冲区混合。这里的问题是，每个光源，即使它们的影响范围在屏幕空间上有重叠，因为每个光源是在不同的绘制中进行，所以会重复读取 G-buffer 中相同位置的数据，计算后以相加混合方式写入颜色缓冲。光源越多，内存带宽用量越大。</p>
 <p>而分块延迟渲染的主要思想则是把屏幕分拆成细小的栅格，例如每 32 × 32 像素作为一个分块（tile），然后计算每个分块会受到哪些光源影响，把那些光源的索引储存在分块的光源列表里。最后，逐个分块进行着色，对每个像素读取 G-buffer 和光源列表及相关的光源信息。因此，G-buffer 的数据只会被读取 1 次且仅 1 次，写入 color buffer 也是 1 次且仅 1 次，大幅降低内存带宽用量。不过，这种方法需要计算光源会影响哪些分块，这个计算又称为光源剔除（light culling），可以在 CPU 或 GPU（通常以 compute shader 实现）中进行。用 GPU 计算的好处是，GPU 计算这类工作比 CPU 更快，也可以减少 CPU 和 GPU 之间的数据传输。此外，还可以计算每个分块的深度范围（depth range），作更有效的剔除。</p>
-<p><img src="https://lz328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516164106531.png" alt="image-20220516164106531"></p>
+<p><img src="/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516164106531.png" alt="image-20220516164106531"></p>
 <p>总结来说，分块延迟渲染将屏幕分成一个个小块 tile 并计算每个分块的深度范围。然后根据深度范围和分块大小，可以求得每个 tile 的 bounding volume。对每个 tile 的 bounding volume 和光源进行求交点，这样就得到了对该 tile 有作用的光源的序列。最后根据得到的序列计算所在 tile 的光照效果。整个过程如下图所示：</p>
-<p><img src="https://lz328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/1617944-20190906002505353-1795972401.png" alt="1617944-20190906002505353-1795972401"></p>
+<p><img src="/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/1617944-20190906002505353-1795972401.png" alt="1617944-20190906002505353-1795972401"></p>
 <p>对比传统 Deferred Rendering，之前是对每个光源求其作用区域 light volume，然后决定其作用的 pixel，也就是说每个光源要求取一次。而使用 TBDR，只要遍历每个 pixel，让其所属 tile 与光线求交，来计算作用其上的光源，并利用 G-Buffer 进行着色。这样做一方面减少了所需考虑的光源个数，另一方面与传统的 Deferred Rendering 相比减少了存取的带宽。因此分块渲染现在广泛应用于移动设备渲染中。</p>
 <h3 id="9-延迟渲染-vs-延迟光照"><a href="#9-延迟渲染-vs-延迟光照" class="headerlink" title="9 延迟渲染 vs 延迟光照"></a>9 延迟渲染 vs 延迟光照</h3><p>关于延迟着色和延迟光照，经常会被弄混，这里简单区分一下。</p>
 <ul>
@@ -417,373 +167,23 @@
 <li>两种方法的上述操作均是只能完成对不透明物体的渲染，而透明或半透明的物体则需额外的传统 Pass 来完成。</li>
 </ul>
 <p>延迟渲染的流程图如下，根据 G-Buffer 中的信息直接计算光照和着色：</p>
-<p><img src="https://lz328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516165141752.png" alt="image-20220516165141752"></p>
+<p><img src="/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516165141752.png" alt="image-20220516165141752"></p>
 <p>延迟光照的流程图如下，提前计算光照并存入纹理，在着色时直接对纹理采样得到光照结果，不再计算光照，只进行其他后处理，从这个流程上来说，Light Pre-Pass 这个名称更为合适：</p>
-<p><img src="https://lz328.github.io/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516165158816.png" alt="image-20220516165158816"></p>
+<p><img src="/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/image-20220516165158816.png" alt="image-20220516165158816"></p>
 <p><strong>无论是正向渲染，延迟渲染、延迟光照、分块延迟渲染，都属于不同的渲染路径（Rendering Path）。</strong></p>
 
-    </div>
-
-    
-    
-    
-
-    <div>
-    
-      <div>
-    
-        <div style="text-align:center;color: #ccc;font-size:14px;">---- 本文结束 <i class="fa fa-trophy"></i> 知识又增加了亿点点！----</div>
-    
-</div>
-<br />
-<div>
-  <div>
-    <fieldset
-        style="
-            border: 1px dashed #C0C0C0;
-            padding: 10px;
-            border-radius: 5px;
-            line-height: 2em;
-            color: #6d6d6d;
-        ">
-        <legend
-            align="center"
-            style="
-                width: 30%;
-                text-align: center;
-                color: #6d6d6d;
-                border: 1px dashed #C0C0C0;
-                border-radius: 5px;
-            ">
-            文章版权声明
-        </legend>
-        1、博客名称：<font color="#37c6c0">LycTechStack</font><br />
-        2、博客网址：<font color="#37c6c0">https://lz328.github.io/LycTechStack.github.io/</font><br />
-        3、本博客的文章部分内容可能来源于网络，仅供大家学习与参考，如有侵权，请联系博主进行删除处理。<br />
-        4、本博客所有文章版权归博主所有，如需转载请标明出处。<br />
-    </fieldset>
+    <footer class="post-end"><a href="/LycTechStack.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6/"># 计算机图形学</a> <a href="/LycTechStack.github.io/tags/%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93/"># 实时渲染</a> 
+    <p><a href="/LycTechStack.github.io/2022/05/18/20220518-RTR-%E5%85%A8%E5%B1%80%E5%85%89%E7%85%A7%E6%80%BB%E7%BB%93/">较新文章 · 【Real-Time Rendering】全局光照总结 →</a></p>
+    <p><a href="/LycTechStack.github.io/2022/05/16/20220516-RTR-BRDF%E6%80%BB%E7%BB%93/">较早文章 · 【Real-Time Rendering】BRDF总结 →</a></p>
+    </footer></article>
   </div>
 </div>
+</main>
+<footer class="wrap foot"><a href="/LycTechStack.github.io/">LycTechStack</a><div><a href="/LycTechStack.github.io/tags/">标签</a><a href="/LycTechStack.github.io/about/">关于</a><a href="#main">回到顶部 ↑</a></div></footer>
+<dialog id="search-panel" aria-labelledby="search-title"><form method="dialog"><h2 id="search-title">搜索文章</h2><button aria-label="关闭搜索">×</button></form>
+<input type="search" id="query" placeholder="输入标题或分类" aria-label="搜索关键词"><p id="search-count" role="status"></p>
+<ul id="results"><li><a href="/LycTechStack.github.io/2023/03/16/20230316-C++%E4%B8%8ELua%E4%BA%A4%E4%BA%92%E6%80%BB%E7%BB%93/">C++与Lua交互总结 <small>Lua</small></a></li><li><a href="/LycTechStack.github.io/2023/03/16/20230316-%E5%AE%89%E5%85%A8%E7%BC%96%E7%A0%81-%E5%B9%B6%E5%8F%91%E5%92%8C%E5%A4%9A%E7%BA%BF%E7%A8%8B/">【安全编码】并发和多线程 <small>C和C++安全编码</small></a></li><li><a href="/LycTechStack.github.io/2023/03/16/20230316-%E5%AE%89%E5%85%A8%E7%BC%96%E7%A0%81-%E6%95%B4%E6%95%B0%E5%AE%89%E5%85%A8/">【安全编码】整数安全 <small>C和C++安全编码</small></a></li><li><a href="/LycTechStack.github.io/2023/03/16/20230316-%E5%AE%89%E5%85%A8%E7%BC%96%E7%A0%81-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/">【安全编码】内存管理 <small>C和C++安全编码</small></a></li><li><a href="/LycTechStack.github.io/2023/03/16/20230316-%E5%AE%89%E5%85%A8%E7%BC%96%E7%A0%81-%E5%AD%97%E7%AC%A6%E4%B8%B2/">【安全编码】字符串 <small>C和C++安全编码</small></a></li><li><a href="/LycTechStack.github.io/2023/03/09/20230309-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E5%85%B6%E4%BB%96%E5%B8%B8%E7%94%A8%E6%A8%A1%E5%BC%8F%E5%8F%8A%E6%80%BB%E7%BB%93/">【设计模式】其他常用模式及总结 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/08/20230308-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E5%A4%8D%E5%90%88%E6%A8%A1%E5%BC%8F/">【设计模式】复合模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/08/20230308-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F/">【设计模式】代理模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/07/20230307-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E7%8A%B6%E6%80%81%E6%A8%A1%E5%BC%8F/">【设计模式】状态模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/07/20230307-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E8%BF%AD%E4%BB%A3%E5%99%A8%E6%A8%A1%E5%BC%8F%E5%92%8C%E7%BB%84%E5%90%88%E6%A8%A1%E5%BC%8F/">【设计模式】迭代器模式和组合模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/05/20230305-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E6%A8%A1%E6%9D%BF%E6%96%B9%E6%B3%95%E6%A8%A1%E5%BC%8F/">【设计模式】模板方法模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/05/20230305-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E9%80%82%E9%85%8D%E5%99%A8%E6%A8%A1%E5%BC%8F%E5%92%8C%E5%A4%96%E8%A7%82%E6%A8%A1%E5%BC%8F/">【设计模式】适配器模式和外观模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/05/20230305-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E5%91%BD%E4%BB%A4%E6%A8%A1%E5%BC%8F/">【设计模式】命令模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/04/20230304-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F/">【设计模式】单例模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/04/20230304-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E5%B7%A5%E5%8E%82%E6%A8%A1%E5%BC%8F/">【设计模式】工厂模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/02/20230302-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E8%A3%85%E9%A5%B0%E8%80%85%E6%A8%A1%E5%BC%8F/">【设计模式】装饰者模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/03/02/20230302-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E8%A7%82%E5%AF%9F%E8%80%85%E6%A8%A1%E5%BC%8F/">【设计模式】观察者模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2023/02/28/20230228-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E7%AD%96%E7%95%A5%E6%A8%A1%E5%BC%8F/">【设计模式】策略模式 <small>设计模式</small></a></li><li><a href="/LycTechStack.github.io/2022/08/07/20220807-%E9%81%AE%E6%8C%A1%E5%89%94%E9%99%A4%E6%80%BB%E7%BB%93/">【Real-Time Rendering】遮挡剔除总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/08/07/20220807-UE%E6%B8%B2%E6%9F%93%E4%BD%93%E7%B3%BB-%E7%9B%AE%E5%BD%95%E7%B4%A2%E5%BC%95/">【UE渲染体系】目录索引 <small>虚幻引擎渲染体系</small></a></li><li><a href="/LycTechStack.github.io/2022/07/25/20220725-Piccolo-%E6%B8%B2%E6%9F%93%E7%B3%BB%E7%BB%9F%EF%BC%88%E4%B8%89%EF%BC%89%E5%B8%A7%E8%B0%83%E8%AF%95/">【Piccolo代码解读】渲染系统（三）帧调试 <small>Piccolo引擎代码解读</small></a></li><li><a href="/LycTechStack.github.io/2022/07/23/20220723-%E6%B8%B2%E6%9F%93%E5%99%A8-%E6%9C%80%E7%BB%88%E7%89%88%E8%AF%B4%E6%98%8E%E6%96%87%E6%A1%A3/">【光栅化渲染器】最终版说明文档 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/07/17/20220717-Vulkan-Vulkan%E8%B5%84%E6%BA%90%E7%BB%91%E5%AE%9A%E5%92%8C%E7%8A%B6%E6%80%81%E7%AE%A1%E7%90%86/">【Vulkan】资源绑定和状态管理 <small>Vulkan</small></a></li><li><a href="/LycTechStack.github.io/2022/07/17/20220717-Vulkan-Vulkan%E6%98%BE%E7%A4%BA%E4%B8%8E%E7%BB%98%E5%88%B6/">【Vulkan】显示与绘制 <small>Vulkan</small></a></li><li><a href="/LycTechStack.github.io/2022/07/17/20220717-Vulkan-Vulkan%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/">【Vulkan】内存管理 <small>Vulkan</small></a></li><li><a href="/LycTechStack.github.io/2022/07/17/20220717-Vulkan-Vulkan%E5%A4%9A%E7%BA%BF%E7%A8%8B%E6%B8%B2%E6%9F%93/">【Vulkan】多线程渲染 <small>Vulkan</small></a></li><li><a href="/LycTechStack.github.io/2022/07/16/20220716-Vulkan-Vulkan%E5%AF%B9%E8%B1%A1%E6%80%BB%E7%BB%93/">【Vulkan】常用组件总结 <small>Vulkan</small></a></li><li><a href="/LycTechStack.github.io/2022/07/13/20220713-Piccolo-%E6%B8%B2%E6%9F%93%E7%B3%BB%E7%BB%9F%EF%BC%88%E4%BA%8C%EF%BC%89%E6%B8%B2%E6%9F%93%E8%B7%AF%E5%BE%84%E7%9A%84%E5%AE%9E%E7%8E%B0/">【Piccolo代码解读】渲染系统（二）渲染路径的实现 <small>Piccolo引擎代码解读</small></a></li><li><a href="/LycTechStack.github.io/2022/07/04/20220704-GameEngine-%E6%B8%B8%E6%88%8F%E5%BC%95%E6%93%8E%E4%B8%AD%E7%9A%84%E7%89%A9%E7%90%86%E7%B3%BB%E7%BB%9F/">【游戏引擎】（四）游戏引擎中的物理系统 <small>游戏引擎</small></a></li><li><a href="/LycTechStack.github.io/2022/07/03/20220703-GPU%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/">GPU架构深度解析 <small>知识汇总</small></a></li><li><a href="/LycTechStack.github.io/2022/07/03/20220703-GameEngine-%E6%B8%B8%E6%88%8F%E5%BC%95%E6%93%8E%E4%B8%AD%E7%9A%84%E5%8A%A8%E7%94%BB%E7%B3%BB%E7%BB%9F/">【游戏引擎】（三）游戏引擎中的动画系统 <small>游戏引擎</small></a></li><li><a href="/LycTechStack.github.io/2022/07/02/20220702-%E7%9F%A5%E8%AF%86%E6%B1%87%E6%80%BB-%E5%9B%BE%E5%BD%A2%E5%AD%A6%E9%83%A8%E5%88%86/">【知识汇总】图形学和API相关 <small>知识汇总</small></a></li><li><a href="/LycTechStack.github.io/2022/06/28/20220628-%E7%9F%A5%E8%AF%86%E6%B1%87%E6%80%BB-3D%E6%95%B0%E5%AD%A6%E9%83%A8%E5%88%86/">【知识汇总】数学相关 <small>知识汇总</small></a></li><li><a href="/LycTechStack.github.io/2022/06/25/20220626-%E7%9F%A5%E8%AF%86%E6%B1%87%E6%80%BB-C++%E9%83%A8%E5%88%86/">【知识汇总】C++相关 <small>知识汇总</small></a></li><li><a href="/LycTechStack.github.io/2022/06/18/20220618-Pilot-%E6%B8%B2%E6%9F%93%E7%B3%BB%E7%BB%9F%EF%BC%88%E4%B8%80%EF%BC%89%E6%B8%B2%E6%9F%93%E6%B5%81%E7%A8%8B/">【Piccolo代码解读】渲染系统（一）渲染流程 <small>Piccolo引擎代码解读</small></a></li><li><a href="/LycTechStack.github.io/2022/06/17/20220617-Pilot-%E6%95%B4%E4%BD%93%E6%A1%86%E6%9E%B6%E4%B8%8E%E4%BB%A3%E7%A0%81%E5%8F%8D%E5%B0%84/">【Piccolo代码解读】整体框架与反射机制 <small>Piccolo引擎代码解读</small></a></li><li><a href="/LycTechStack.github.io/2022/06/09/20220609-GAMES202-%E5%AE%9E%E6%97%B6%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA/">【高质量实时渲染】实时光线追踪 <small>高质量实时渲染</small></a></li><li><a href="/LycTechStack.github.io/2022/06/08/20220608-GAMES202-%E5%AE%9E%E6%97%B6PBR%E6%9D%90%E8%B4%A8/">【高质量实时渲染】实时PBR材质 <small>高质量实时渲染</small></a></li><li><a href="/LycTechStack.github.io/2022/06/05/20220605-GAMES202-%E5%AE%9E%E6%97%B6%E5%85%A8%E5%B1%80%E5%85%89%E7%85%A7/">【高质量实时渲染】实时全局光照 <small>高质量实时渲染</small></a></li><li><a href="/LycTechStack.github.io/2022/06/02/20220602-GAMES202-%E5%AE%9E%E6%97%B6%E7%8E%AF%E5%A2%83%E5%85%89%E7%85%A7/">【高质量实时渲染】实时环境光照 <small>高质量实时渲染</small></a></li><li><a href="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/">【高质量实时渲染】实时阴影 <small>高质量实时渲染</small></a></li><li><a href="/LycTechStack.github.io/2022/05/26/20220526-GameEngine-%E6%B8%B8%E6%88%8F%E5%BC%95%E6%93%8E%E4%B8%AD%E7%9A%84%E6%B8%B2%E6%9F%93%E7%B3%BB%E7%BB%9F/">【游戏引擎】（二）游戏引擎中的渲染系统 <small>游戏引擎</small></a></li><li><a href="/LycTechStack.github.io/2022/05/25/20220525-%E9%80%8F%E8%A7%86%E6%8F%92%E5%80%BC%E6%A0%A1%E6%AD%A3/">关于透视插值校正 <small></small></a></li><li><a href="/LycTechStack.github.io/2022/05/25/20220525-%E6%B8%B2%E6%9F%93%E5%99%A8-%E6%94%B9%E8%BF%9B%E5%85%89%E6%A0%85%E5%8C%96/">【光栅化渲染器】（九）改进光栅化 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/25/20220525-%E6%B8%B2%E6%9F%93%E5%99%A8-%E5%85%89%E6%BA%90/">【光栅化渲染器】（八）光源 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/24/20220524-%E6%B8%B2%E6%9F%93%E5%99%A8-%E5%8A%A0%E8%BD%BD%E6%A8%A1%E5%9E%8B/">【光栅化渲染器】（七）加载模型 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/24/20220524-%E6%B8%B2%E6%9F%93%E5%99%A8-%E5%89%94%E9%99%A4%E4%B8%8E%E8%A3%81%E5%89%AA/">【光栅化渲染器】（六）剔除与裁剪 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/23/20220523-%E6%B8%B2%E6%9F%93%E5%99%A8-%E7%9B%B8%E6%9C%BA/">【光栅化渲染器】（五）相机 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/22/20220522-%E6%B8%B2%E6%9F%93%E5%99%A8-%E7%BA%B9%E7%90%86/">【光栅化渲染器】（四）纹理 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/21/20220521-%E6%B8%B2%E6%9F%93%E5%99%A8-%E5%8F%98%E6%8D%A2%E4%B8%8E%E6%B7%B1%E5%BA%A6%E6%B5%8B%E8%AF%95/">【光栅化渲染器】（三）变换与深度测试 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/20/20220520-%E6%B8%B2%E6%9F%93%E5%99%A8-%E6%A1%86%E6%9E%B6%E6%90%AD%E5%BB%BA/">【光栅化渲染器】（二）框架搭建 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/19/20220519-%E6%B8%B2%E6%9F%93%E5%99%A8-%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE/">【光栅化渲染器】（一）环境配置 <small>光栅化渲染器</small></a></li><li><a href="/LycTechStack.github.io/2022/05/18/20220518-RTR-%E6%B8%B2%E6%9F%93%E5%8A%A0%E9%80%9F%E6%8A%80%E6%9C%AF%E6%80%BB%E7%BB%93/">【Real-Time Rendering】渲染加速技术总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/18/20220518-RTR-%E9%9D%9E%E7%9C%9F%E5%AE%9E%E6%84%9F%E6%B8%B2%E6%9F%93%E6%8A%80%E6%9C%AF%E6%80%BB%E7%BB%93/">【Real-Time Rendering】非真实感渲染总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/18/20220518-RTR-%E5%9F%BA%E4%BA%8E%E5%9B%BE%E5%83%8F%E7%9A%84%E6%B8%B2%E6%9F%93%E6%8A%80%E6%9C%AF%E6%80%BB%E7%BB%93/">【Real-Time Rendering】基于图像的渲染技术总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/18/20220518-RTR-%E5%85%A8%E5%B1%80%E5%85%89%E7%85%A7%E6%80%BB%E7%BB%93/">【Real-Time Rendering】全局光照总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/">【Real-Time Rendering】延迟渲染总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/16/20220516-RTR-BRDF%E6%80%BB%E7%BB%93/">【Real-Time Rendering】BRDF总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/15/20220515-RTR-%E7%A8%8B%E5%BA%8F%E5%99%AA%E5%A3%B0%E6%80%BB%E7%BB%93/">【Real-Time Rendering】程序噪声总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/15/20220515-RTR-%E7%BA%B9%E7%90%86%E6%80%BB%E7%BB%93/">【Real-Time Rendering】纹理总结 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/14/20220514-RTR-%E6%A8%A1%E6%9D%BF%E6%B5%8B%E8%AF%95%E5%92%8C%E6%B7%B1%E5%BA%A6%E6%B5%8B%E8%AF%95/">【Real-Time Rendering】模板测试和深度测试 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/13/20220513-RTR-%E5%9B%BE%E5%BD%A2%E6%B8%B2%E6%9F%93%E5%92%8C%E8%A7%86%E8%A7%89%E5%A4%96%E8%A7%82/">【Real-Time Rendering】图形渲染和视觉处理 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/13/20220513-RTR-GPU%E7%AE%A1%E7%BA%BF/">【Real-Time Rendering】GPU管线 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/12/20220512-RTR-%E5%9B%BE%E5%BD%A2%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF/">【Real-Time Rendering】图形渲染管线 <small>Real-Time Rendering</small></a></li><li><a href="/LycTechStack.github.io/2022/05/11/20220511-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B-%E6%A8%A1%E6%9D%BF%E5%92%8CRTTI/">【C++对象模型】（七）模板和RTTI <small>深度探索C++对象模型</small></a></li><li><a href="/LycTechStack.github.io/2022/05/11/20220511-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B-%E5%85%B3%E4%BA%8E%E6%89%A7%E8%A1%8C%E6%9C%9F/">【C++对象模型】（六）关于执行期 <small>深度探索C++对象模型</small></a></li><li><a href="/LycTechStack.github.io/2022/05/09/20220509-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B-%E5%AF%B9%E8%B1%A1%E5%A4%8D%E5%88%B6%E5%92%8C%E6%9E%90%E6%9E%84/">【C++对象模型】（五）对象复制和析构 <small>深度探索C++对象模型</small></a></li><li><a href="/LycTechStack.github.io/2022/05/09/20220509-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B-%E5%85%B3%E4%BA%8E%E5%87%BD%E6%95%B0%E6%88%90%E5%91%98/">【C++对象模型】（四）关于函数成员 <small>深度探索C++对象模型</small></a></li><li><a href="/LycTechStack.github.io/2022/05/07/20220507-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B-%E5%85%B3%E4%BA%8E%E6%95%B0%E6%8D%AE%E6%88%90%E5%91%98/">【C++对象模型】（三）关于数据成员 <small>深度探索C++对象模型</small></a></li><li><a href="/LycTechStack.github.io/2022/05/06/20220506-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B-%E5%85%B3%E4%BA%8E%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0/">【C++对象模型】（二）关于构造函数 <small>深度探索C++对象模型</small></a></li><li><a href="/LycTechStack.github.io/2022/05/05/20220505-%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B-%E5%85%B3%E4%BA%8E%E5%AF%B9%E8%B1%A1/">【C++对象模型】（一）关于对象 <small>深度探索C++对象模型</small></a></li><li><a href="/LycTechStack.github.io/2022/05/03/20220503-STL-%E5%85%B3%E8%81%94%E5%BC%8F%E5%AE%B9%E5%99%A8/">【STL】关联式容器 <small>STL</small></a></li><li><a href="/LycTechStack.github.io/2022/04/30/20220430-STL-%E5%BA%8F%E5%88%97%E5%BC%8F%E5%AE%B9%E5%99%A8/">【STL】序列式容器 <small>STL</small></a></li><li><a href="/LycTechStack.github.io/2022/04/30/20220430-STL-%E8%BF%AD%E4%BB%A3%E5%99%A8/">【STL】迭代器 <small>STL</small></a></li><li><a href="/LycTechStack.github.io/2022/04/28/20220428-GameEngine-%E6%B8%B8%E6%88%8F%E5%BC%95%E6%93%8E%E6%9E%B6%E6%9E%84/">【游戏引擎】（一）游戏引擎架构 <small>游戏引擎</small></a></li><li><a href="/LycTechStack.github.io/2022/04/27/20220427-RayTracer-%E6%9C%80%E5%90%8E%E4%B8%80%E6%AD%A5/">【RayTracer】（二十二）最后一步 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/26/20220426-RayTracer-%E6%B7%B7%E5%90%88%E6%A6%82%E7%8E%87%E5%AF%86%E5%BA%A6/">【RayTracer】（二十一）混合概率密度 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/26/20220426-RayTracer-%E7%9B%B4%E6%8E%A5%E5%AF%B9%E5%85%89%E6%BA%90%E9%87%87%E6%A0%B7/">【RayTracer】（二十）直接对光源采样 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/24/20220424-RayTracer-%E9%9A%8F%E6%9C%BA%E6%96%B9%E5%90%91/">【RayTracer】（十九）随机方向 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/24/20220424-RayTracer-%E9%87%8D%E8%A6%81%E6%80%A7%E9%87%87%E6%A0%B7/">【RayTracer】（十八）重要性采样 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/22/20220422-RayTracer-%E6%96%B0%E7%89%B9%E6%80%A7%E6%9C%80%E7%BB%88%E5%9C%BA%E6%99%AF/">【RayTracer】（十七）新特性最终场景 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/22/20220422-RayTracer-%E5%8F%82%E4%B8%8E%E4%BB%8B%E8%B4%A8/">【RayTracer】（十六）参与介质 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/22/20220422-RayTracer-%E7%AB%8B%E6%96%B9%E4%BD%93%E5%92%8C%E5%8F%98%E6%8D%A2/">【RayTracer】（十五）立方体和变换 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/22/20220422-RayTracer-%E5%85%89%E6%BA%90/">【RayTracer】（十四）光源 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/22/20220422-%E8%83%8C%E5%8C%85%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/">【动态规划】（七）背包动态规划 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/04/21/20220421-RayTracer-%E5%9B%BE%E7%89%87%E7%BA%B9%E7%90%86/">【RayTracer】（十三）图片纹理 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/19/20220419-RayTracer-Perlin%E5%99%AA%E5%A3%B0/">【RayTracer】（十二）Perlin噪声 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/18/20220418-RayTracer-%E7%BA%B9%E7%90%86/">【RayTracer】（十一）纹理 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/18/20220418-RayTracer-%E5%AE%9E%E7%8E%B0BVH/">【RayTracer】（十）实现BVH <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/17/20220417-RayTracer-%E8%BF%90%E5%8A%A8%E6%A8%A1%E7%B3%8A/">【RayTracer】（九）运动模糊 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/16/20220416-RayTracer-%E6%9E%84%E5%BB%BA%E9%9A%8F%E6%9C%BA%E5%9C%BA%E6%99%AF/">【RayTracer】（八）构建随机场景 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/16/20220416-RayTracer-%E6%94%B9%E8%BF%9B%E7%9B%B8%E6%9C%BA/">【RayTracer】（七）景深效果 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/16/20220416-RayTracer-%E7%94%B5%E4%BB%8B%E8%B4%A8/">【RayTracer】（六）电介质 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/16/20220416-RayTracer-%E9%87%91%E5%B1%9E%E6%9D%90%E8%B4%A8/">【RayTracer】（五）金属材质 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/15/20220415-RayTracer-%E6%BC%AB%E5%8F%8D%E5%B0%84%E6%9D%90%E8%B4%A8/">【RayTracer】（四）漫反射材质 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/15/20220415-RayTracer-%E7%9B%B8%E6%9C%BA%E7%B1%BB%E5%92%8C%E5%8F%8D%E8%B5%B0%E6%A0%B7/">【RayTracer】（三）相机类和反走样 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/15/20220415-RayTracer-%E7%89%A9%E4%BD%93%E7%B1%BB/">【RayTracer】（二）实现物体类 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/13/20220413-%E6%8E%92%E5%BA%8F%E7%AE%97%E6%B3%95/">【算法】排序算法 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/04/11/20220411-RayTracer-%E5%9F%BA%E6%9C%AC%E5%B7%A5%E5%85%B7%E7%B1%BB/">【RayTracer】（一）实现基本工具类 <small>RayTracer</small></a></li><li><a href="/LycTechStack.github.io/2022/04/10/20220410-Shader-%E5%99%AA%E5%A3%B0%E7%BA%B9%E7%90%86/">【Unity Shader】（十）噪声纹理 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/09/20220409-Shader-%E9%9D%9E%E7%9C%9F%E5%AE%9E%E6%84%9F%E6%B8%B2%E6%9F%93/">【Unity Shader】（九）非真实感渲染 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/09/20220409-Shader-%E9%AB%98%E7%BA%A7%E5%B1%8F%E5%B9%95%E7%89%B9%E6%95%88/">【Unity Shader】（八）高级屏幕特效 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/07/20220407-Shader-%E5%9F%BA%E7%A1%80%E5%B1%8F%E5%B9%95%E7%89%B9%E6%95%88/">【Unity Shader】（七）基础屏幕特效 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/07/20220407-Shader-%E5%8A%A8%E7%94%BB/">【Unity Shader】（六）动画 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/07/20220407-Shader-%E9%AB%98%E7%BA%A7%E7%BA%B9%E7%90%86/">【Unity Shader】（五）高级纹理 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/06/20220406-%E4%BC%98%E5%85%88%E9%98%9F%E5%88%97%E5%92%8C%E5%A0%86/">【数据结构】优先队列和堆 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/04/05/20220405-%E8%B4%AA%E5%BF%83%E7%AE%97%E6%B3%95/">【算法】贪心算法 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/04/04/20220404-Shader-%E9%98%B4%E5%BD%B1%E5%92%8C%E8%A1%B0%E5%87%8F/">【Unity Shader】（四）阴影和衰减 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/03/20220403-Shader-%E9%80%8F%E6%98%8E%E6%95%88%E6%9E%9C/">【Unity Shader】（三）透明效果 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/03/20220403-Shader-%E5%9F%BA%E7%A1%80%E7%BA%B9%E7%90%86/">【Unity Shader】（二）基础纹理 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/04/02/20220402-Shader-%E5%9F%BA%E7%A1%80%E5%85%89%E7%85%A7/">【Unity Shader】（一）基础光照 <small>Unity Shader</small></a></li><li><a href="/LycTechStack.github.io/2022/03/28/20220328-%E4%BA%8C%E5%88%86%E6%9F%A5%E6%89%BE/">【算法】二分查找 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/25/20220325-%E5%8C%BA%E9%97%B4%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/">【动态规划】（六）区间动态规划 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/24/20220324-%E6%B8%B2%E6%9F%93%E5%92%8C%E6%9D%90%E8%B4%A8%E5%89%8D%E6%B2%BF/">【计算机图形学】（十五）高级渲染和材质概述 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/24/20220324-%E6%9D%90%E8%B4%A8/">【计算机图形学】（十四）材质 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/20/20220320-%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/">【计算机图形学】（十三）路径追踪 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/19/20220319-%E5%89%8D%E7%BC%80%E5%92%8C/">【动态规划】（五）前缀和 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/18/20220318-%E8%BE%90%E5%B0%84%E5%BA%A6%E9%87%8F%E5%AD%A6/">【计算机图形学】（十二）辐射度量学基础 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/17/20220317-Whitted%E9%A3%8E%E6%A0%BC%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA/">【计算机图形学】（十一）Whitted 风格光线追踪 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/15/20220315-%E7%BA%BF%E6%80%A7%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92-%E7%9F%A9%E9%98%B5%E5%92%8C%E6%97%A0%E4%B8%B2/">【动态规划】（四）线性动态规划之矩阵和无串问题 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/13/20220313-%E9%98%B4%E5%BD%B1/">【计算机图形学】（十）阴影 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/13/20220313-%E5%87%A0%E4%BD%95/">【计算机图形学】（九）几何 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/12/20220312-%E7%BA%BF%E6%80%A7%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92-%E5%8F%8C%E4%B8%B2/">【动态规划】（三）线性动态规划之双串问题 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/10/20220310-%E5%9B%BE%E5%BD%A2%E7%AE%A1%E7%BA%BF/">【计算机图形学】（八）图形管线 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/10/20220310-%E7%BA%B9%E7%90%86%E6%98%A0%E5%B0%84/">【计算机图形学】（七）纹理映射 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/10/20220310-%E7%BA%BF%E6%80%A7%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92-%E5%B8%A6%E7%BB%B4%E5%BA%A6%E5%8D%95%E4%B8%B2/">【动态规划】（二）线性动态规划之带维度单串问题 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/09/20220309-%E7%9D%80%E8%89%B2/">【计算机图形学】（六）着色 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/08/20220308-%E6%B7%B1%E5%BA%A6%E7%BC%93%E5%86%B2/">【计算机图形学】（五）深度缓冲 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/07/20220307-%E7%BA%BF%E6%80%A7%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92-%E5%8D%95%E4%B8%B2/">【动态规划】（一）线性动态规划之单串问题 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/06/20220306-%E5%8F%8D%E8%B5%B0%E6%A0%B7/">【计算机图形学】（四）反走样 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/06/20220306-%E5%85%89%E6%A0%85%E5%8C%96/">【计算机图形学】（三）光栅化 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/03/20220303-%E4%BA%8C%E5%8F%89%E6%A0%91/">【数据结构】二叉树 <small>数据结构与算法</small></a></li><li><a href="/LycTechStack.github.io/2022/03/03/20200303-%E6%97%8B%E8%BD%AC%E4%B8%8E%E5%9B%9B%E5%85%83%E6%95%B0/">【计算机图形学】（二）旋转与四元数 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/02/20200302-%E5%8F%98%E6%8D%A2/">【计算机图形学】（一）变换 <small>GAMES101</small></a></li><li><a href="/LycTechStack.github.io/2022/03/02/20220303-%E7%BA%BF%E6%80%A7%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/">【数据结构】线性数据结构 <small>数据结构与算法</small></a></li></ul></dialog>
 
-    
-    </div>
-      
-  <div class="popular-posts-header">相关文章</div>
-  <ul class="popular-posts">
-    <li class="popular-posts-item">
-      <div class="popular-posts-title"><a href="\LycTechStack.github.io\2022\05\13\20220513-RTR-GPU管线\" rel="bookmark">【Real-Time Rendering】GPU管线</a></div>
-    </li>
-    <li class="popular-posts-item">
-      <div class="popular-posts-title"><a href="\LycTechStack.github.io\2022\05\13\20220513-RTR-图形渲染和视觉外观\" rel="bookmark">【Real-Time Rendering】图形渲染和视觉处理</a></div>
-    </li>
-    <li class="popular-posts-item">
-      <div class="popular-posts-title"><a href="\LycTechStack.github.io\2022\05\15\20220515-RTR-程序噪声总结\" rel="bookmark">【Real-Time Rendering】程序噪声总结</a></div>
-    </li>
-    <li class="popular-posts-item">
-      <div class="popular-posts-title"><a href="\LycTechStack.github.io\2022\05\14\20220514-RTR-模板测试和深度测试\" rel="bookmark">【Real-Time Rendering】模板测试和深度测试</a></div>
-    </li>
-    <li class="popular-posts-item">
-      <div class="popular-posts-title"><a href="\LycTechStack.github.io\2022\05\16\20220516-RTR-BRDF总结\" rel="bookmark">【Real-Time Rendering】BRDF总结</a></div>
-    </li>
-  </ul>
-
-
-      <footer class="post-footer">
-          <div class="post-tags">
-              <a href="/LycTechStack.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6/" rel="tag"># 计算机图形学</a>
-              <a href="/LycTechStack.github.io/tags/%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93/" rel="tag"># 实时渲染</a>
-          </div>
-
-        
-
-
-        
-    <div class="post-nav">
-      <div class="post-nav-item">
-    <a href="/LycTechStack.github.io/2022/05/16/20220516-RTR-BRDF%E6%80%BB%E7%BB%93/" rel="prev" title="【Real-Time Rendering】BRDF总结">
-      <i class="fa fa-chevron-left"></i> 【Real-Time Rendering】BRDF总结
-    </a></div>
-      <div class="post-nav-item">
-    <a href="/LycTechStack.github.io/2022/05/18/20220518-RTR-%E5%85%A8%E5%B1%80%E5%85%89%E7%85%A7%E6%80%BB%E7%BB%93/" rel="next" title="【Real-Time Rendering】全局光照总结">
-      【Real-Time Rendering】全局光照总结 <i class="fa fa-chevron-right"></i>
-    </a></div>
-    </div>
-      </footer>
-    
-  </article>
-  
-  
-  
-
-
-
-          </div>
-          
-    <div class="comments" id="gitalk-container"></div>
-
-<script>
-  window.addEventListener('tabs:register', () => {
-    let { activeClass } = CONFIG.comments;
-    if (CONFIG.comments.storage) {
-      activeClass = localStorage.getItem('comments_active') || activeClass;
-    }
-    if (activeClass) {
-      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
-      if (activeTab) {
-        activeTab.click();
-      }
-    }
-  });
-  if (CONFIG.comments.storage) {
-    window.addEventListener('tabs:click', event => {
-      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
-      let commentClass = event.target.classList[1];
-      localStorage.setItem('comments_active', commentClass);
-    });
-  }
-</script>
-
-        </div>
-          
-  
-  <div class="toggle sidebar-toggle">
-    <span class="toggle-line toggle-line-first"></span>
-    <span class="toggle-line toggle-line-middle"></span>
-    <span class="toggle-line toggle-line-last"></span>
-  </div>
-
-  <aside class="sidebar">
-    <div class="sidebar-inner">
-
-      <ul class="sidebar-nav motion-element">
-        <li class="sidebar-nav-toc">
-          文章目录
-        </li>
-        <li class="sidebar-nav-overview">
-          站点概览
-        </li>
-      </ul>
-
-      <!--noindex-->
-      <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%EF%BC%88Deferred-Rendering%EF%BC%89"><span class="nav-text">1 延迟渲染（Deferred Rendering）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E5%87%A0%E4%BD%95%E7%BC%93%E5%86%B2%E5%8C%BA%EF%BC%88G-buffer%EF%BC%89"><span class="nav-text">2 几何缓冲区（G-buffer）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E7%9A%84%E8%BF%87%E7%A8%8B"><span class="nav-text">3 延迟渲染的过程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93-vs-%E6%AD%A3%E5%90%91%E6%B8%B2%E6%9F%93"><span class="nav-text">4 延迟渲染 vs 正向渲染</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-%E6%AD%A3%E5%90%91%E6%B8%B2%E6%9F%93"><span class="nav-text">4.1 正向渲染</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-2-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93"><span class="nav-text">4.2 延迟渲染</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-3-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93-vs-Z-Prepass"><span class="nav-text">4.3 延迟渲染 vs Z-Prepass</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E7%9A%84%E4%BC%98%E7%BC%BA%E7%82%B9"><span class="nav-text">5 延迟渲染的优缺点</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#5-1-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E7%9A%84%E4%BC%98%E7%82%B9"><span class="nav-text">5.1 延迟渲染的优点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-2-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E7%9A%84%E7%BC%BA%E7%82%B9"><span class="nav-text">5.2 延迟渲染的缺点</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E9%80%8F%E6%98%8E%E7%89%A9%E4%BD%93"><span class="nav-text">6 延迟渲染透明物体</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E4%B8%8E-MSAA"><span class="nav-text">7 延迟渲染与 MSAA</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E7%9A%84%E6%94%B9%E8%BF%9B"><span class="nav-text">8 延迟渲染的改进</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#8-1-%E5%BB%B6%E8%BF%9F%E5%85%89%E7%85%A7"><span class="nav-text">8.1 延迟光照</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#8-2-%E5%88%86%E5%9D%97%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93"><span class="nav-text">8.2 分块延迟渲染</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#9-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93-vs-%E5%BB%B6%E8%BF%9F%E5%85%89%E7%85%A7"><span class="nav-text">9 延迟渲染 vs 延迟光照</span></a></li></ol></div>
-      </div>
-      <!--/noindex-->
-
-      <div class="site-overview-wrap sidebar-panel">
-        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
-    <img class="site-author-image" itemprop="image" alt="Lyc"
-      src="/LycTechStack.github.io/images/avatar.png">
-  <p class="site-author-name" itemprop="name">Lyc</p>
-  <div class="site-description" itemprop="description">Take time to see the world, to renew self, and to enjoy the game-like life!</div>
-</div>
-<div class="site-state-wrap motion-element">
-  <nav class="site-state">
-      <div class="site-state-item site-state-posts">
-          <a href="/LycTechStack.github.io/archives/">
-        
-          <span class="site-state-item-count">135</span>
-          <span class="site-state-item-name">日志</span>
-        </a>
-      </div>
-      <div class="site-state-item site-state-categories">
-            <a href="/LycTechStack.github.io/categories/">
-          
-        <span class="site-state-item-count">17</span>
-        <span class="site-state-item-name">分类</span></a>
-      </div>
-      <div class="site-state-item site-state-tags">
-            <a href="/LycTechStack.github.io/tags/">
-          
-        <span class="site-state-item-count">19</span>
-        <span class="site-state-item-name">标签</span></a>
-      </div>
-  </nav>
-</div>
-  <div class="links-of-author motion-element">
-      <span class="links-of-author-item">
-        <a href="https://github.com/LZ328/" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;LZ328&#x2F;" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
-      </span>
-      <span class="links-of-author-item">
-        <a href="mailto:27487358@qq.com" title="E-Mail → mailto:27487358@qq.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
-      </span>
-  </div>
-
-
-
-      </div>
-
-    </div>
-  </aside>
-  <div id="sidebar-dimmer"></div>
-
-
-      </div>
-    </main>
-
-    <footer class="footer">
-      <div class="footer-inner">
-        
-
-        
-
-<div class="copyright">
-  
-  &copy; 2021 – 
-  <span itemprop="copyrightYear">2023</span>
-  <span class="with-love">
-    <i class="fa fa-heartbeat"></i>
-  </span>
-  <span class="author" itemprop="copyrightHolder">Lyc</span>
-    <span class="post-meta-divider">|</span>
-    <span class="post-meta-item-icon">
-      <i class="fa fa-chart-area"></i>
-    </span>
-      <span class="post-meta-item-text">站点总字数：</span>
-    <span title="站点总字数">1m</span>
-    <span class="post-meta-divider">|</span>
-    <span class="post-meta-item-icon">
-      <i class="fa fa-coffee"></i>
-    </span>
-      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">15:29</span>
-</div>
-
-        
-<div class="busuanzi-count">
-  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
-    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
-      <span class="post-meta-item-icon">
-        <i class="fa fa-user"></i>
-      </span>
-      <span class="site-uv" title="总访客量">
-        <span id="busuanzi_value_site_uv"></span>
-      </span>
-    </span>
-    <span class="post-meta-divider">|</span>
-    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
-      <span class="post-meta-item-icon">
-        <i class="fa fa-eye"></i>
-      </span>
-      <span class="site-pv" title="总访问量">
-        <span id="busuanzi_value_site_pv"></span>
-      </span>
-    </span>
-</div>
-
-
-
-
-
-
-
-
-      </div>
-    </footer>
-  </div>
-
-  
-  <script size="300" alpha="0.6" zIndex="-1" src="/LycTechStack.github.io/lib/canvas-ribbon/canvas-ribbon.js"></script>
-  <script src="/LycTechStack.github.io/lib/anime.min.js"></script>
-  <script src="/LycTechStack.github.io/lib/pjax/pjax.min.js"></script>
-  <script src="//cdn.jsdelivr.net/npm/pangu@4/dist/browser/pangu.min.js"></script>
-  <script src="/LycTechStack.github.io/lib/velocity/velocity.min.js"></script>
-  <script src="/LycTechStack.github.io/lib/velocity/velocity.ui.min.js"></script>
-
-<script src="/LycTechStack.github.io/js/utils.js"></script>
-
-<script src="/LycTechStack.github.io/js/motion.js"></script>
-
-
-<script src="/LycTechStack.github.io/js/schemes/pisces.js"></script>
-
-
-<script src="/LycTechStack.github.io/js/next-boot.js"></script>
-
-  <script>
-var pjax = new Pjax({
-  selectors: [
-    'head title',
-    '#page-configurations',
-    '.content-wrap',
-    '.post-toc-wrap',
-    '.languages',
-    '#pjax'
-  ],
-  switches: {
-    '.post-toc-wrap': Pjax.switches.innerHTML
-  },
-  analytics: false,
-  cacheBust: false,
-  scrollTo : !CONFIG.bookmark.enable
-});
-
-window.addEventListener('pjax:success', () => {
-  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
-    var code = element.text || element.textContent || element.innerHTML || '';
-    var parent = element.parentNode;
-    parent.removeChild(element);
-    var script = document.createElement('script');
-    if (element.id) {
-      script.id = element.id;
-    }
-    if (element.className) {
-      script.className = element.className;
-    }
-    if (element.type) {
-      script.type = element.type;
-    }
-    if (element.src) {
-      script.src = element.src;
-      // Force synchronous loading of peripheral JS.
-      script.async = false;
-    }
-    if (element.dataset.pjax !== undefined) {
-      script.dataset.pjax = '';
-    }
-    if (code !== '') {
-      script.appendChild(document.createTextNode(code));
-    }
-    parent.appendChild(script);
-  });
-  NexT.boot.refresh();
-  // Define Motion Sequence & Bootstrap Motion.
-  if (CONFIG.motion.enable) {
-    NexT.motion.integrator
-      .init()
-      .add(NexT.motion.middleWares.subMenu)
-      .add(NexT.motion.middleWares.postList)
-      .bootstrap();
-  }
-  NexT.utils.updateSidebarPosition();
-});
-</script>
-
-
-
-
-  
-
-
-
-
-  
-<script src="/LycTechStack.github.io/js/local-search.js"></script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-    <div id="pjax">
-  
 
   
       
@@ -842,29 +242,4 @@ window.addEventListener('pjax:success', () => {
 
     
 
-  
-
-<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
-
-<script>
-NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
-  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
-    var gitalk = new Gitalk({
-      clientID    : '09aa5d8a5587f012a8af',
-      clientSecret: '7f7ec08f02d74e1865e57b5f03a982047700b547',
-      repo        : 'LycTechStack.github.io',
-      owner       : 'LZ328',
-      admin       : ['LZ328'],
-      id          : '671ab766c7777a8921b3f11dbfe9239b',
-        language: 'zh-CN',
-      distractionFreeMode: true
-    });
-    gitalk.render('gitalk-container');
-  }, window.Gitalk);
-});
-</script>
-
-    </div>
-  
-</body>
-</html>
+</body></html>
