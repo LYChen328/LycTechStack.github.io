@@ -4,6 +4,7 @@
   const canvas = document.querySelector('.star-field');
   const context = canvas?.getContext('2d');
   const stage = document.querySelector('.world-stage');
+  const weather = stage && window.createJournalWeather?.(stage);
   const dialog = document.querySelector('.search-dialog');
   const reading = document.body.classList.contains('reading-view');
   const root = document.documentElement;
@@ -54,6 +55,7 @@
     if (stage) {
       stageTop = stage.getBoundingClientRect().top + window.scrollY;
       stageHeight = stage.offsetHeight;
+      weather?.resize(stage.clientWidth, stageHeight);
     }
     paint(0);
   }
@@ -95,6 +97,7 @@
   function paintStars(dt, follow) {
     context.clearRect(0, 0, width, height);
     const range = Math.min(192, width * .33);
+    const coverTop = stageTop - window.scrollY;
     const nearby = [];
     for (const star of stars) {
       const d = star.depth;
@@ -109,7 +112,8 @@
       star.dy += ((dy + dx * .66) * bend - star.dy) * follow;
       const px = x + star.dx, py = y + star.dy;
       const twinkle = .85 + .15 * Math.sin(time * (.52 + d) + star.phase);
-      const alpha = Math.min(1, (.28 + .52 * d) * twinkle + field * .65);
+      const inSky = weather && py >= coverTop && py < coverTop + stageHeight;
+      const alpha = Math.min(1, (.28 + .52 * d) * twinkle * (inSky ? .22 : 1) + field * .65);
       const radius = star.radius + field * .64;
       context.fillStyle = star.color;
       if (d > .73 || field > .18) {
@@ -197,6 +201,7 @@
     time += dt;
     if (context) paintStars(dt, follow);
     paintCamera(follow);
+    if (weather && inView) weather.update(dt, -cameraX / 11);
   }
 
   function tick(now) {

@@ -1,0 +1,223 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a1017">
+  <meta name="generator" content="Hexo 5.4.1">
+  <title>【环境渲染】（七）穿越水线、海底焦散与水下成像 | LycTechStack</title>
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"lychen328.github.io","root":"/LycTechStack.github.io/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":true,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":true,"nav":null,"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":5,"unescape":false,"preload":false},"motion":{"enable":false,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+  <meta name="description" content="把相机慢慢压过一个浪尖，有些像素已经在看水下，有些还在看远处的天空。只用相机高度切换全屏蓝色滤镜，画面会在一帧内整体变色。应当先找出每条视线上真正处在水中的那一段，再决定这段水吸收和散射多少光。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【环境渲染】（七）穿越水线、海底焦散与水下成像">
+<meta property="og:url" content="https://lychen328.github.io/LycTechStack.github.io/2026/11/19/20261119-env-07-underwater/index.html">
+<meta property="og:site_name" content="LycTechStack">
+<meta property="og:description" content="把相机慢慢压过一个浪尖，有些像素已经在看水下，有些还在看远处的天空。只用相机高度切换全屏蓝色滤镜，画面会在一帧内整体变色。应当先找出每条视线上真正处在水中的那一段，再决定这段水吸收和散射多少光。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2026/11/19/20261119-env-07-underwater/underwater-rgb.png">
+<meta property="article:published_time" content="2026-11-19T02:00:02.000Z">
+<meta property="article:modified_time" content="2026-11-19T12:29:44.219Z">
+<meta property="article:author" content="Lyc">
+<meta property="article:tag" content="实时渲染">
+<meta property="article:tag" content="体积渲染">
+<meta property="article:tag" content="水体渲染">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://lychen328.github.io/LycTechStack.github.io/2026/11/19/20261119-env-07-underwater/underwater-rgb.png">
+  <link rel="canonical" href="https://lychen328.github.io/LycTechStack.github.io/2026/11/19/20261119-env-07-underwater/">
+  <link rel="icon" href="/LycTechStack.github.io/images/journal/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/LycTechStack.github.io/css/journal.css?v=weather1">
+  
+  
+
+
+
+
+
+
+  <script defer src="/LycTechStack.github.io/js/journal.js?v=ringworld"></script>
+  <script defer src="/LycTechStack.github.io/js/world-field.js"></script>
+<link rel="alternate" href="/LycTechStack.github.io/atom.xml" title="LycTechStack" type="application/atom+xml">
+</head>
+<body id="top" class="reading-view">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="world-grid" aria-hidden="true"></div>
+  <canvas class="star-field" aria-hidden="true"></canvas>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="wordmark" href="/LycTechStack.github.io/" rel="home"><img src="/LycTechStack.github.io/images/journal/mark.svg" alt="" width="33" height="33">LycTechStack</a>
+      <nav class="primary-nav" id="primary-nav" aria-label="主导航">
+        
+          
+          <a href="/LycTechStack.github.io/">首页</a>
+        
+          
+          <a href="/LycTechStack.github.io/archives/">归档</a>
+        
+          
+          <a href="/LycTechStack.github.io/categories/">分类</a>
+        
+          
+          <a href="/LycTechStack.github.io/tags/">标签</a>
+        
+          
+          <a href="/LycTechStack.github.io/about/">关于</a>
+        
+      </nav>
+      <div class="header-tools">
+        <button class="search-trigger js-only" type="button" aria-label="搜索文章" aria-haspopup="dialog"><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#search"/></svg><span>搜索</span><kbd>/</kbd></button>
+        <button class="motion-toggle js-only" type="button" aria-label="暂停背景动效" title="暂停背景动效"><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#pause"/></svg><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#play"/></svg></button>
+        <a class="github-link" href="https://github.com/LYChen328/" aria-label="Lyc 的 GitHub" target="_blank" rel="noopener"><svg class="icon" width="19" height="19" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#github"/></svg></a>
+        <button class="menu-toggle js-only" type="button" aria-label="展开导航" aria-expanded="false" aria-controls="primary-nav"><svg class="icon" width="22" height="22" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#menu"/></svg></button>
+      </div>
+    </div>
+    <div class="reading-progress" aria-hidden="true"></div>
+  </header>
+  <main id="main" tabindex="-1">
+<div class="wrap inner-page post-page">
+  <div class="breadcrumbs"><a href="/LycTechStack.github.io/">首页</a><span>/</span><a href="/LycTechStack.github.io/archives/">归档</a>
+    <span>/</span><a href="/LycTechStack.github.io/categories/%E7%8E%AF%E5%A2%83%E6%B8%B2%E6%9F%93/">环境渲染</a>
+  </div>
+  <article itemscope itemtype="https://schema.org/BlogPosting">
+    <header class="article-heading">
+      
+      <p class="kicker article-series">环境渲染<span>第七篇</span></p>
+      <h1 class="page-title" itemprop="headline">穿越水线、海底焦散与水下成像</h1>
+      <div class="article-meta"><span itemprop="author">Lyc</span><i></i>
+        <time datetime="2026-11-19T02:00:02.000Z" itemprop="datePublished">2026-11-19</time>
+        <i></i><span>2k 字</span>
+        <i></i><span><svg class="icon" width="14" height="14" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#clock"/></svg>约 2 分钟</span>
+        <span id="busuanzi_container_page_pv" style="display:none"><span id="busuanzi_value_page_pv"></span> 次阅读</span>
+      </div>
+    </header>
+    
+    <div class="article-layout">
+      <aside class="toc-panel"><details open><summary><svg class="icon" width="17" height="17" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#toc"/></svg>文章目录 <svg class="icon" width="15" height="15" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#chevron"/></svg></summary><nav aria-label="文章目录"><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E7%BB%99%E6%AF%8F%E4%B8%AA%E5%83%8F%E7%B4%A0%E6%B1%82%E4%B8%80%E6%AE%B5%E6%B0%B4%E8%B7%AF%E5%BE%84"><span class="toc-text">1 给每个像素求一段水路径</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E4%B8%BA%E4%BB%80%E4%B9%88%E8%BF%9C%E5%A4%84%E7%9A%84%E7%BA%A2%E8%89%B2%E7%8F%8A%E7%91%9A%E5%85%88%E5%A4%B1%E8%89%B2"><span class="toc-text">2 为什么远处的红色珊瑚先失色</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E6%B5%B7%E5%BA%95%E7%9A%84%E7%84%A6%E6%95%A3%E4%B8%BA%E4%BB%80%E4%B9%88%E4%BC%9A%E6%B8%B8%E5%8A%A8"><span class="toc-text">3 海底的焦散为什么会游动</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-%E6%B5%B7%E5%BA%95%E5%9C%B0%E5%BD%A2%E4%B8%8E%E6%B0%B4%E6%B5%81%E6%80%8E%E6%A0%B7%E9%85%8D%E5%90%88"><span class="toc-text">4 海底地形与水流怎样配合</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-%E7%A7%BB%E5%8A%A8%E7%AB%AF%E4%BF%9D%E4%BD%8F%E6%B0%B4%E7%BA%BF%E4%B8%8E%E6%B7%B1%E6%B5%85%E5%B7%AE%E5%BC%82"><span class="toc-text">5 移动端保住水线与深浅差异</span></a></li></ol></nav></details></aside>
+      <div class="article-column">
+        <div class="prose post-body" itemprop="articleBody">
+          
+          <p>把相机慢慢压过一个浪尖，有些像素已经在看水下，有些还在看远处的天空。只用相机高度切换全屏蓝色滤镜，画面会在一帧内整体变色。应当先找出每条视线上真正处在水中的那一段，再决定这段水吸收和散射多少光。</p>
+<span id="more"></span>
+
+<h3 id="1-给每个像素求一段水路径"><a href="#1-给每个像素求一段水路径" class="headerlink" title="1 给每个像素求一段水路径"></a>1 给每个像素求一段水路径</h3><p>无限海面可利用与主水面相同的位移和时间生成水面深度与朝向掩码，再与不透明场景深度相交。相机在空气中看池底时，从入水点积到池底；相机在水下看天空时，从近裁剪面附近积到出水点；相机与物体都在水下时，终点就是物体。有限泳池或水洞还要考虑水体边界，用封闭体的前后表面或体积标识约束区间。复杂重叠水体若有多个有效区间，就按射线顺序分别积算。</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">t0 = max(waterEntry, 0)</span><br><span class="line">t1 = min(waterExit, opaqueHit)</span><br><span class="line">lengthInWater = max(0, t1 - t0)</span><br></pre></td></tr></table></figure>
+
+<p>这里的 <code>t</code> 均为同一条单位射线上的距离。在折射路径上估厚时，要沿折射方向计算；屏幕空间中用两个视空间 Z 直接相减只是近似，掠射角误差最大。水线附近可提高掩码分辨率或做覆盖抗锯齿；双眼渲染时每只眼睛独立求交，波面时间保持一致。<a target="_blank" rel="noopener" href="https://crest.readthedocs.io/en/stable/user/underwater.html">Crest 水下渲染与水线</a></p>
+<h3 id="2-为什么远处的红色珊瑚先失色"><a href="#2-为什么远处的红色珊瑚先失色" class="headerlink" title="2 为什么远处的红色珊瑚先失色"></a>2 为什么远处的红色珊瑚先失色</h3><p>介质消光系数为 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="bold-italic">σ</mi><mi>t</mi></msub><mo>=</mo><msub><mi mathvariant="bold-italic">σ</mi><mi>a</mi></msub><mo>+</mo><msub><mi mathvariant="bold-italic">σ</mi><mi>s</mi></msub></mrow><annotation encoding="application/x-tex">\boldsymbol{\sigma}_t=\boldsymbol{\sigma}_a+\boldsymbol{\sigma}_s</annotation></semantics></math></span>，均以每米计。均匀水段长度为 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>d</mi></mrow><annotation encoding="application/x-tex">d</annotation></semantics></math></span> 时，逐通道透射率为 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="bold">T</mi><mo>=</mo><mi>exp</mi><mo>⁡</mo><mo stretchy="false">(</mo><mo>−</mo><msub><mi mathvariant="bold-italic">σ</mi><mi>t</mi></msub><mi>d</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\mathbf{T}=\exp(-\boldsymbol{\sigma}_t d)</annotation></semantics></math></span>。若方向上的等效源函数 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="bold">S</mi></mrow><annotation encoding="application/x-tex">\mathbf{S}</annotation></semantics></math></span> 近似不变，最终颜色为 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="bold">T</mi><msub><mi>C</mi><mrow><mi mathvariant="normal">b</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">d</mi></mrow></msub><mo>+</mo><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><mi mathvariant="bold">T</mi><mo stretchy="false">)</mo><mi mathvariant="bold">S</mi></mrow><annotation encoding="application/x-tex">\mathbf{T} C_\mathrm{bed}+(1-\mathbf{T})\mathbf{S}</annotation></semantics></math></span>。蓝绿色水的红通道衰减可以更快，浑浊河流则应另设吸收和悬浮物散射，水色无需统一。</p>
+<p><a href="underwater-rgb.png"><img src="/LycTechStack.github.io/2026/11/19/20261119-env-07-underwater/underwater-rgb.png" alt="一组示例 RGB 消光系数下，海底反射光随水路径增长的透射比例" loading="lazy"></a></p>
+<p>图中取 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">(</mo><mn>0.35</mn><mo separator="true">,</mo><mn>0.12</mn><mo separator="true">,</mo><mn>0.06</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(0.35,0.12,0.06)</annotation></semantics></math></span> 每米，仅用于看出变化速度。10 m 之后，三个通道分别约剩 3%、30%、55%。这是从物体到眼睛的路径；太阳要先照到海底，还要沿入水后的太阳方向衰减一次。从水下看水面时，超过水到空气界面的临界角会发生全反射，平坦水面的临界角约为 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>arcsin</mi><mo>⁡</mo><mo stretchy="false">(</mo><mn>1</mn><mi mathvariant="normal">/</mi><mn>1.33</mn><mo stretchy="false">)</mo><mo>≈</mo><msup><mn>49</mn><mo>∘</mo></msup></mrow><annotation encoding="application/x-tex">\arcsin(1/1.33)\approx49^\circ</annotation></semantics></math></span>。用扰动法线计算这个判定，斯涅尔窗边缘就会随波动起来。</p>
+<h3 id="3-海底的焦散为什么会游动"><a href="#3-海底的焦散为什么会游动" class="headerlink" title="3 海底的焦散为什么会游动"></a>3 海底的焦散为什么会游动</h3><p>水面法线变化使相邻的折射光线在底部汇聚或发散。近景可沿太阳方向采样水面网格，把顶点沿折射方向投到接收面或海底深度，再光栅化得到光子足迹。根据入射面积与投影面积之比估计能量密度；多片落在同一区域时累加，给极小投影面积设置下限并滤波，避免无限亮的单像素点。光源阴影、入水透射率、深度衰减和底部法线都要参与，桥的阴影下不会有来自直射太阳的强焦散。水面模拟和焦散纹理的更新频率也会影响花纹抖动。<a target="_blank" rel="noopener" href="https://docs.unity.cn/Packages/com.unity.render-pipelines.high-definition@17.0/manual/WaterSystem-caustics.html">Unity HDRP 水体焦散</a></p>
+<p>若还需要水下光柱，在相同水段内稀疏采样太阳可见性，积分悬浮颗粒的入射散射。让焦散照亮接收面，让光柱照亮水体；把同一张焦散纹理在屏幕上全屏相加，会让近处游鱼和远处深海一样明亮。</p>
+<h3 id="4-海底地形与水流怎样配合"><a href="#4-海底地形与水流怎样配合" class="headerlink" title="4 海底地形与水流怎样配合"></a>4 海底地形与水流怎样配合</h3><p>在同一高度基准下记录海床高程与静水面，两者之差给出静水深。潮汐先改变水面高度，浅水模拟、底部受光和潮间带材质由此读到同一条水线。近景用地形网格或岩体网格保住礁石轮廓，尺度小于格点的沙纹放进底部法线与粗糙度。把焦散投到实际受光位置，斜坡上的光纹自然会随地形伸展。海草顶点则采样海床附近的流速，按根到叶尖的权重弯曲，根部固定在地形上。</p>
+<p>角色踢过沙床时，可在海床上方的一小块体积网格中注入悬沙浓度。每次更新用局部水流反向追踪，沿略向下的沉降速度搬运上一帧的浓度，在床面收集沉积量。渲染时让悬沙增加这段水的散射与消光，搅起来的浑水就能遮住远处细节，又会随着水流慢慢澄清。用一次脚蹼扰动测试，横流应带走沙云，上层清水应先恢复通透。</p>
+<h3 id="5-移动端保住水线与深浅差异"><a href="#5-移动端保住水线与深浅差异" class="headerlink" title="5 移动端保住水线与深浅差异"></a>5 移动端保住水线与深浅差异</h3><p>首先保住每像素水线掩码和三通道透射，可以用查表代替指数。浅海地形离线烘焙水深，动态焦散降为沿主光方向投影的双层动画纹理，再乘底部深度和阴影。近处有游泳角色时用角色屏幕深度限定它经过的水段；远处水下光柱可用低频光照纹理代替逐像素体积步进。</p>
+<p>海床沙纹可烘进切线空间法线。只有玩家脚边的悬沙需要动态更新时，可随水流移动几张带深度衰减的软粒子，限制它们在屏幕上的重叠面积。用海草顶点色保存弯曲权重，成片草叶共用一次低频水流采样。</p>
+<p>用三种镜头分开验收。贴着水面横移，看水线有无一帧跳变；从水下仰视岸上的物体，检查折射偏移有无跨越前景边缘；把红、绿、蓝三个同亮度色块放到不同深度，检查线性光照空间中的衰减顺序。移动端若只能留一次低分辨率离屏 Pass，优先实测它用于水体散射还是动态焦散更能改善这些镜头。</p>
+<p>海面位移的来源见 <a href="/LycTechStack.github.io/2026/11/19/20261119-env-06-ocean/" title="水面与频谱海洋">水面与频谱海洋</a>，船尾的局部波动见 <a href="/LycTechStack.github.io/2026/11/19/20261119-env-08-interaction/" title="环境交互">环境交互</a>。</p>
+
+        </div>
+        <div class="tag-cloud post-tags"><a href="/LycTechStack.github.io/tags/%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93/" rel="tag"><span>#</span> 实时渲染</a><a href="/LycTechStack.github.io/tags/%E4%BD%93%E7%A7%AF%E6%B8%B2%E6%9F%93/" rel="tag"><span>#</span> 体积渲染</a><a href="/LycTechStack.github.io/tags/%E6%B0%B4%E4%BD%93%E6%B8%B2%E6%9F%93/" rel="tag"><span>#</span> 水体渲染</a></div>
+        
+        <aside class="credit"><strong>文章版权</strong><p>本文收录于 <a href="/LycTechStack.github.io/">LycTechStack</a>，仅供学习与参考。转载时请注明作者和出处。部分资料来自网络，如有侵权请联系博主。</p></aside>
+        
+  <div class="popular-posts-header">相关文章</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2026/11/19/20261119-env-03-clouds/" rel="bookmark">【环境渲染】（三）体积云的密度、光照与时域重建</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2026/11/19/20261119-env-04-fog/" rel="bookmark">【环境渲染】（四）视锥体素与局部体积雾</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2026/11/19/20261119-env-06-ocean/" rel="bookmark">【环境渲染】（六）水面、近岸与频谱海洋</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2026/11/19/20261119-env-05-atmosphere/" rel="bookmark">【环境渲染】（五）大气散射、空气透视与体积光</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/05/12/20220512-RTR-图形渲染管线/" rel="bookmark">【Real-Time Rendering】图形渲染管线</a></div>
+    </li>
+  </ul>
+
+        
+          
+          
+          <nav class="article-nav" aria-label="相邻文章">
+            <a href="/LycTechStack.github.io/2026/11/19/20261119-env-08-interaction/" rel="prev"><small>上一篇</small>【环境渲染】（八）雪沙足迹、水面尾流与雾气交互</a>
+            <a href="/LycTechStack.github.io/2026/11/19/20261119-env-06-ocean/" rel="next"><small>下一篇</small>【环境渲染】（六）水面、近岸与频谱海洋</a>
+          </nav>
+        
+        
+    
+
+<section class="article-discussion" aria-labelledby="discussion-title">
+  <h2 id="discussion-title">文章讨论</h2>
+  <a class="text-link" target="_blank" rel="noopener" href="https://github.com/LYChen328/LycTechStack.github.io/issues?q=is%3Aissue%20label%3A9023d00d28466b946ebe564fb872493f">在 GitHub 查看与回复</a>
+  <a class="text-link" target="_blank" rel="noopener" href="https://github.com/LYChen328/LycTechStack.github.io/issues/new?title=%E3%80%90%E7%8E%AF%E5%A2%83%E6%B8%B2%E6%9F%93%E3%80%91%EF%BC%88%E4%B8%83%EF%BC%89%E7%A9%BF%E8%B6%8A%E6%B0%B4%E7%BA%BF%E3%80%81%E6%B5%B7%E5%BA%95%E7%84%A6%E6%95%A3%E4%B8%8E%E6%B0%B4%E4%B8%8B%E6%88%90%E5%83%8F&amp;body=https%3A%2F%2Flychen328.github.io%2FLycTechStack.github.io%2F2026%2F11%2F19%2F20261119-env-07-underwater%2F&amp;labels=Gitalk%2C9023d00d28466b946ebe564fb872493f">发起讨论</a>
+</section>
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+      </div>
+    </div>
+  </article>
+</div>
+</main>
+  <footer class="site-footer"><div class="wrap footer-inner">
+    <div class="footer-brand"><img src="/LycTechStack.github.io/images/journal/mark.svg" alt="" width="24" height="24"><strong>LycTechStack</strong><span>© 2021–2026 Lyc</span></div>
+    <div class="footer-links">
+      <a href="mailto:27487358@qq.com">联系作者</a>
+      <a href="/LycTechStack.github.io/atom.xml"><svg class="icon" width="14" height="14" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#rss"/></svg> RSS</a>
+      <a href="#top">返回顶部 ↑</a>
+    </div>
+  </div>
+  <div class="wrap footer-counts">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+  <span id="busuanzi_container_site_uv" style="display:none">访客 <span id="busuanzi_value_site_uv"></span></span>
+  <span id="busuanzi_container_site_pv" style="display:none">浏览 <span id="busuanzi_value_site_pv"></span></span>
+
+</div>
+  </footer>
+  
+    <dialog class="search-dialog" aria-labelledby="search-title" data-index="/LycTechStack.github.io/search.xml">
+  <div class="dialog-head"><h2 id="search-title">搜索笔记</h2><form method="dialog"><button class="icon-button" aria-label="关闭搜索"><svg class="icon" width="18" height="18" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#close"/></svg></button></form></div>
+  <label class="search-field"><svg class="icon" width="20" height="20" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#search"/></svg><input type="search" aria-label="搜索标题、标签或正文" placeholder="输入标题、标签或正文关键词…" autocomplete="off" spellcheck="false"></label>
+  <div class="search-suggestions"><p>常用标签</p><div class="tag-cloud"><button type="button" data-query="计算机图形学"># 计算机图形学</button><button type="button" data-query="C++"># C++</button><button type="button" data-query="实时渲染"># 实时渲染</button><button type="button" data-query="光线追踪"># 光线追踪</button><button type="button" data-query="游戏引擎"># 游戏引擎</button><button type="button" data-query="设计模式"># 设计模式</button></div></div>
+  <p class="search-status" role="status"></p><ol class="search-results"></ol>
+</dialog>
+
+    <script defer src="/LycTechStack.github.io/js/journal-search.js"></script>
+  
+  
+    
+<script src="/LycTechStack.github.io/js/utils.js"></script>
+
+  
+  
+  
+</body>
+</html>

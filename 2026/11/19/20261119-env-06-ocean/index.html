@@ -1,0 +1,221 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a1017">
+  <meta name="generator" content="Hexo 5.4.1">
+  <title>【环境渲染】（六）水面、近岸与频谱海洋 | LycTechStack</title>
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"lychen328.github.io","root":"/LycTechStack.github.io/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":true,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":true,"nav":null,"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":5,"unescape":false,"preload":false},"motion":{"enable":false,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+  <meta name="description" content="湖边的细碎波纹让高光破碎，却几乎不改变岸线；海上的长涌浪能把整条船托起来。先把这两个尺度分开，就可以分别决定哪些波必须参与位移与浮力，哪些只需进入法线和粗糙度。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【环境渲染】（六）水面、近岸与频谱海洋">
+<meta property="og:url" content="https://lychen328.github.io/LycTechStack.github.io/2026/11/19/20261119-env-06-ocean/index.html">
+<meta property="og:site_name" content="LycTechStack">
+<meta property="og:description" content="湖边的细碎波纹让高光破碎，却几乎不改变岸线；海上的长涌浪能把整条船托起来。先把这两个尺度分开，就可以分别决定哪些波必须参与位移与浮力，哪些只需进入法线和粗糙度。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2026/11/19/20261119-env-06-ocean/wave-bands.png">
+<meta property="article:published_time" content="2026-11-19T02:00:03.000Z">
+<meta property="article:modified_time" content="2026-11-19T12:29:44.219Z">
+<meta property="article:author" content="Lyc">
+<meta property="article:tag" content="计算机图形学">
+<meta property="article:tag" content="实时渲染">
+<meta property="article:tag" content="水体渲染">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://lychen328.github.io/LycTechStack.github.io/2026/11/19/20261119-env-06-ocean/wave-bands.png">
+  <link rel="canonical" href="https://lychen328.github.io/LycTechStack.github.io/2026/11/19/20261119-env-06-ocean/">
+  <link rel="icon" href="/LycTechStack.github.io/images/journal/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/LycTechStack.github.io/css/journal.css?v=weather1">
+  
+  
+
+
+
+
+
+
+  <script defer src="/LycTechStack.github.io/js/journal.js?v=ringworld"></script>
+  <script defer src="/LycTechStack.github.io/js/world-field.js"></script>
+<link rel="alternate" href="/LycTechStack.github.io/atom.xml" title="LycTechStack" type="application/atom+xml">
+</head>
+<body id="top" class="reading-view">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="world-grid" aria-hidden="true"></div>
+  <canvas class="star-field" aria-hidden="true"></canvas>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="wordmark" href="/LycTechStack.github.io/" rel="home"><img src="/LycTechStack.github.io/images/journal/mark.svg" alt="" width="33" height="33">LycTechStack</a>
+      <nav class="primary-nav" id="primary-nav" aria-label="主导航">
+        
+          
+          <a href="/LycTechStack.github.io/">首页</a>
+        
+          
+          <a href="/LycTechStack.github.io/archives/">归档</a>
+        
+          
+          <a href="/LycTechStack.github.io/categories/">分类</a>
+        
+          
+          <a href="/LycTechStack.github.io/tags/">标签</a>
+        
+          
+          <a href="/LycTechStack.github.io/about/">关于</a>
+        
+      </nav>
+      <div class="header-tools">
+        <button class="search-trigger js-only" type="button" aria-label="搜索文章" aria-haspopup="dialog"><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#search"/></svg><span>搜索</span><kbd>/</kbd></button>
+        <button class="motion-toggle js-only" type="button" aria-label="暂停背景动效" title="暂停背景动效"><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#pause"/></svg><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#play"/></svg></button>
+        <a class="github-link" href="https://github.com/LYChen328/" aria-label="Lyc 的 GitHub" target="_blank" rel="noopener"><svg class="icon" width="19" height="19" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#github"/></svg></a>
+        <button class="menu-toggle js-only" type="button" aria-label="展开导航" aria-expanded="false" aria-controls="primary-nav"><svg class="icon" width="22" height="22" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#menu"/></svg></button>
+      </div>
+    </div>
+    <div class="reading-progress" aria-hidden="true"></div>
+  </header>
+  <main id="main" tabindex="-1">
+<div class="wrap inner-page post-page">
+  <div class="breadcrumbs"><a href="/LycTechStack.github.io/">首页</a><span>/</span><a href="/LycTechStack.github.io/archives/">归档</a>
+    <span>/</span><a href="/LycTechStack.github.io/categories/%E7%8E%AF%E5%A2%83%E6%B8%B2%E6%9F%93/">环境渲染</a>
+  </div>
+  <article itemscope itemtype="https://schema.org/BlogPosting">
+    <header class="article-heading">
+      
+      <p class="kicker article-series">环境渲染<span>第六篇</span></p>
+      <h1 class="page-title" itemprop="headline">水面、近岸与频谱海洋</h1>
+      <div class="article-meta"><span itemprop="author">Lyc</span><i></i>
+        <time datetime="2026-11-19T02:00:03.000Z" itemprop="datePublished">2026-11-19</time>
+        <i></i><span>1.8k 字</span>
+        <i></i><span><svg class="icon" width="14" height="14" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#clock"/></svg>约 2 分钟</span>
+        <span id="busuanzi_container_page_pv" style="display:none"><span id="busuanzi_value_page_pv"></span> 次阅读</span>
+      </div>
+    </header>
+    
+    <div class="article-layout">
+      <aside class="toc-panel"><details open><summary><svg class="icon" width="17" height="17" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#toc"/></svg>文章目录 <svg class="icon" width="15" height="15" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#chevron"/></svg></summary><nav aria-label="文章目录"><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E4%BB%8E%E4%B8%80%E5%88%97-Gerstner-%E6%B3%A2%E5%BC%80%E5%A7%8B"><span class="toc-text">1 从一列 Gerstner 波开始</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E5%A4%A7%E6%B5%B7%E6%80%8E%E6%A0%B7%E7%94%A8%E9%A2%91%E8%B0%B1%E5%8E%BB%E6%A8%A1%E6%8B%9F"><span class="toc-text">2 大海怎样用频谱去模拟</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E6%8E%A5%E8%BF%91%E5%B2%B8%E7%BA%BF%E6%97%B6%EF%BC%8C%E6%B3%A2%E3%80%81%E6%B3%A1%E6%B2%AB%E5%92%8C%E6%B0%B4%E8%89%B2%E6%80%8E%E6%A0%B7%E8%BF%9E%E6%8E%A5"><span class="toc-text">3 接近岸线时，波、泡沫和水色怎样连接</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-%E7%A7%BB%E5%8A%A8%E7%AB%AF%E6%80%8E%E6%A0%B7%E5%8F%96%E8%88%8D%E9%A2%91%E5%B8%A6"><span class="toc-text">4 移动端怎样取舍频带</span></a></li></ol></nav></details></aside>
+      <div class="article-column">
+        <div class="prose post-body" itemprop="articleBody">
+          
+          <p>湖边的细碎波纹让高光破碎，却几乎不改变岸线；海上的长涌浪能把整条船托起来。先把这两个尺度分开，就可以分别决定哪些波必须参与位移与浮力，哪些只需进入法线和粗糙度。</p>
+<span id="more"></span>
+
+<h3 id="1-从一列-Gerstner-波开始"><a href="#1-从一列-Gerstner-波开始" class="headerlink" title="1 从一列 Gerstner 波开始"></a>1 从一列 Gerstner 波开始</h3><p>令水平坐标为 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="bold">x</mi></mrow><annotation encoding="application/x-tex">\mathbf{x}</annotation></semantics></math></span>，波长 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>λ</mi></mrow><annotation encoding="application/x-tex">\lambda</annotation></semantics></math></span>，单位传播方向 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="bold">d</mi></mrow><annotation encoding="application/x-tex">\mathbf{d}</annotation></semantics></math></span>，波数 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi><mo>=</mo><mn>2</mn><mi>π</mi><mi mathvariant="normal">/</mi><mi>λ</mi></mrow><annotation encoding="application/x-tex">k=2\pi/\lambda</annotation></semantics></math></span>，相位 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>θ</mi><mo>=</mo><mi>k</mi><mi mathvariant="bold">d</mi><mo>⋅</mo><mi mathvariant="bold">x</mi><mo>−</mo><mi>ω</mi><mi>t</mi><mo>+</mo><mi>ϕ</mi></mrow><annotation encoding="application/x-tex">\theta=k\mathbf{d}\cdot\mathbf{x}-\omega t+\phi</annotation></semantics></math></span>。一列波给出高度 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>A</mi><mi>sin</mi><mo>⁡</mo><mi>θ</mi></mrow><annotation encoding="application/x-tex">A\sin\theta</annotation></semantics></math></span> 和水平位移 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>Q</mi><mi>A</mi><mi mathvariant="bold">d</mi><mi>cos</mi><mo>⁡</mo><mi>θ</mi></mrow><annotation encoding="application/x-tex">QA\mathbf{d}\cos\theta</annotation></semantics></math></span>。水平位移把水质点推向波峰，让轮廓上尖下圆。多列波叠加时应控制总陡峭度，例如让 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mo>∑</mo><mi>i</mi></msub><mi mathvariant="normal">∣</mi><msub><mi>Q</mi><mi>i</mi></msub><msub><mi>k</mi><mi>i</mi></msub><msub><mi>A</mi><mi>i</mi></msub><mi mathvariant="normal">∣</mi><mo>&lt;</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\sum_i |Q_i k_i A_i|&lt;1</annotation></semantics></math></span> 作为保守限制，避免网格翻折。直接对位移求偏导可得到与网格一致的切线和法线。<a target="_blank" rel="noopener" href="https://developer.nvidia.com/gpugems/gpugems/part-i-natural-effects/chapter-1-effective-water-simulation-physical-models">GPU Gems 的水面模型</a></p>
+<p>远处用随相机移动的同心网格或投影网格，把更多顶点放在近处。顶点采不到的短波交给法线贴图；再远处，一个像素内已有多个波峰，应把未解析的坡度方差转进粗糙度。否则远海一片平滑，转动镜头时偶尔又闪出几个极亮的点。</p>
+<p><a href="wave-bands.png"><img src="/LycTechStack.github.io/2026/11/19/20261119-env-06-ocean/wave-bands.png" alt="长波决定轮廓，短波对高度影响很小，却能明显改变局部坡度" loading="lazy"></a></p>
+<h3 id="2-大海怎样用频谱去模拟"><a href="#2-大海怎样用频谱去模拟" class="headerlink" title="2 大海怎样用频谱去模拟"></a>2 大海怎样用频谱去模拟</h3><p>为每个水平波矢 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="bold">k</mi></mrow><annotation encoding="application/x-tex">\mathbf{k}</annotation></semantics></math></span> 按方向谱和两组高斯随机数生成复振幅 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>h</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">h_0</annotation></semantics></math></span>。用色散关系推进相位。深水重力波满足 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>ω</mi><mn>2</mn></msup><mo>=</mo><mi>g</mi><mi mathvariant="normal">∣</mi><mi mathvariant="bold">k</mi><mi mathvariant="normal">∣</mi></mrow><annotation encoding="application/x-tex">\omega^2=g|\mathbf{k}|</annotation></semantics></math></span>；有限且均匀的水深 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>d</mi></mrow><annotation encoding="application/x-tex">d</annotation></semantics></math></span> 可用 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>ω</mi><mn>2</mn></msup><mo>=</mo><mi>g</mi><mi mathvariant="normal">∣</mi><mi mathvariant="bold">k</mi><mi mathvariant="normal">∣</mi><mi>tanh</mi><mo>⁡</mo><mo stretchy="false">(</mo><mi mathvariant="normal">∣</mi><mi mathvariant="bold">k</mi><mi mathvariant="normal">∣</mi><mi>d</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\omega^2=g|\mathbf{k}|\tanh(|\mathbf{k}|d)</annotation></semantics></math></span>。随位置变化的近岸水深会使波折射、破碎，整块周期 FFT 的单一色散关系无法自动解决这件事。</p>
+<span class="display-equation"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mover accent="true"><mi>h</mi><mo>^</mo></mover><mo stretchy="false">(</mo><mi mathvariant="bold">k</mi><mo separator="true">,</mo><mi>t</mi><mo stretchy="false">)</mo><mo>=</mo><msub><mi>h</mi><mn>0</mn></msub><mo stretchy="false">(</mo><mi mathvariant="bold">k</mi><mo stretchy="false">)</mo><msup><mi>e</mi><mrow><mi>i</mi><mi>ω</mi><mi>t</mi></mrow></msup><mo>+</mo><msubsup><mi>h</mi><mn>0</mn><mo>∗</mo></msubsup><mo stretchy="false">(</mo><mo>−</mo><mi mathvariant="bold">k</mi><mo stretchy="false">)</mo><msup><mi>e</mi><mrow><mo>−</mo><mi>i</mi><mi>ω</mi><mi>t</mi></mrow></msup><mi mathvariant="normal">.</mi></mrow><annotation encoding="application/x-tex">\hat h(\mathbf{k},t)=h_0(\mathbf{k})e^{i\omega t}
+                  +h_0^*(-\mathbf{k})e^{-i\omega t}.</annotation></semantics></math></span></span>
+
+<p>该组合使负频率与正频率互为共轭，逆变换得到实值高度。把频谱乘 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>i</mi><msub><mi>k</mi><mi>x</mi></msub></mrow><annotation encoding="application/x-tex">ik_x</annotation></semantics></math></span> 或 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>i</mi><msub><mi>k</mi><mi>z</mi></msub></mrow><annotation encoding="application/x-tex">ik_z</annotation></semantics></math></span> 可同时得到坡度；配合水平位移频谱输出更尖的波峰。零频项要单独处理，随机种子在天气变化时保持稳定，再逐渐调整谱能量。改变风向时每帧重掷相位，海面会整片闪烁。多级级联使用不同物理边长，并为各段波长设置互补的频带权重，避免同一个长波被累加两次。<a target="_blank" rel="noopener" href="https://jtessen.people.clemson.edu/reports/papers_files/course_slides2002.pdf">Tessendorf 的海洋模拟讲义</a></p>
+<p>谱的选择决定海况。经典 Phillips 谱可从风速和风向得到一片有主方向的风浪。若要区分本地风浪与远方传来的涌浪，可以分别给两组 JONSWAP 谱设置峰值周期、方向展宽和能量，然后叠加两组独立波场。JONSWAP 通常以频率给出，采样到二维波数格点时要按色散关系换算谱密度，并计入格点覆盖的波数面积。可以用同一风况跑两个 FFT 分辨率，检查均方波高是否一致。<a target="_blank" rel="noopener" href="https://docs.crest.waveharmonic.com/Components/Inputs/ShapeFFT.html">Crest 的 FFT 波形输入</a></p>
+<h3 id="3-接近岸线时，波、泡沫和水色怎样连接"><a href="#3-接近岸线时，波、泡沫和水色怎样连接" class="headerlink" title="3 接近岸线时，波、泡沫和水色怎样连接"></a>3 接近岸线时，波、泡沫和水色怎样连接</h3><p>水深图让大浪在浅水区域逐渐减幅，岸线距离场给局部碎浪提供传播方向。高质量路径可在重要海湾补一个浅水解算或沿岸波列，把远海边界的波输入局部区域。白沫可由水平位移映射的雅可比行列式逼近压缩区域；压缩越强，生成量越大。已有泡沫按表面流速平流、按寿命衰减，岸边再注入碎浪泡沫。只把波峰高度涂白，会让不该破碎的缓慢涌浪也布满泡沫。</p>
+<p>着色时通过菲涅耳项混合表面反射与水下辐亮度。大尺度反射可用天空和反射探针，近处加入带厚度检查的屏幕空间反射，屏幕外或信息不足时退回探针。折射采样若落在水面前方就缩回偏移，用线性空间的水路径长度算吸收。浅岸应看见底色，深海逐渐由水体散射主导。透明水与海底之间的光路单独在 <a href="/LycTechStack.github.io/2026/11/19/20261119-env-07-underwater/" title="水下成像">水下成像</a> 中展开。</p>
+<h3 id="4-移动端怎样取舍频带"><a href="#4-移动端怎样取舍频带" class="headerlink" title="4 移动端怎样取舍频带"></a>4 移动端怎样取舍频带</h3><p>小湖面可用少量方向不同的 Gerstner 波做顶点位移，叠两层以不同速度滚动的法线。海景需要远方的大尺度涌浪时，可用低分辨率频谱低频更新位移，或离线烘焙可循环的位移与坡度序列；两帧插值要同时作用于高度与法线。少一次高分辨率频谱的横纵变换，通常比在最终像素着色器里少乘几个数更值得先试。</p>
+<p>反射以预过滤天空为底，只在确实能看到倒影的水域更新小型平面反射。把水网格按可见岸线裁剪，深度和场景颜色拷贝一起纳入预算。测试时固定风速，依次关掉短波法线、白沫、反射和折射，记录特写与俯视两个镜头的耗时。同一条船的浮力查询与画面共用低频波的坐标、相位和时间，船首就不会在两种性能档位间突然悬空。</p>
+
+        </div>
+        <div class="tag-cloud post-tags"><a href="/LycTechStack.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6/" rel="tag"><span>#</span> 计算机图形学</a><a href="/LycTechStack.github.io/tags/%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93/" rel="tag"><span>#</span> 实时渲染</a><a href="/LycTechStack.github.io/tags/%E6%B0%B4%E4%BD%93%E6%B8%B2%E6%9F%93/" rel="tag"><span>#</span> 水体渲染</a></div>
+        
+        <aside class="credit"><strong>文章版权</strong><p>本文收录于 <a href="/LycTechStack.github.io/">LycTechStack</a>，仅供学习与参考。转载时请注明作者和出处。部分资料来自网络，如有侵权请联系博主。</p></aside>
+        
+  <div class="popular-posts-header">相关文章</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/05/12/20220512-RTR-图形渲染管线/" rel="bookmark">【Real-Time Rendering】图形渲染管线</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/05/13/20220513-RTR-GPU管线/" rel="bookmark">【Real-Time Rendering】GPU管线</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/05/13/20220513-RTR-图形渲染和视觉外观/" rel="bookmark">【Real-Time Rendering】图形渲染和视觉处理</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/05/14/20220514-RTR-模板测试和深度测试/" rel="bookmark">【Real-Time Rendering】模板测试和深度测试</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/05/15/20220515-RTR-程序噪声总结/" rel="bookmark">【Real-Time Rendering】程序噪声总结</a></div>
+    </li>
+  </ul>
+
+        
+          
+          
+          <nav class="article-nav" aria-label="相邻文章">
+            <a href="/LycTechStack.github.io/2026/11/19/20261119-env-07-underwater/" rel="prev"><small>上一篇</small>【环境渲染】（七）穿越水线、海底焦散与水下成像</a>
+            <a href="/LycTechStack.github.io/2026/11/19/20261119-env-05-atmosphere/" rel="next"><small>下一篇</small>【环境渲染】（五）大气散射、空气透视与体积光</a>
+          </nav>
+        
+        
+    
+
+<section class="article-discussion" aria-labelledby="discussion-title">
+  <h2 id="discussion-title">文章讨论</h2>
+  <a class="text-link" target="_blank" rel="noopener" href="https://github.com/LYChen328/LycTechStack.github.io/issues?q=is%3Aissue%20label%3Af72d8dc855e315b3b39d96a652bcc264">在 GitHub 查看与回复</a>
+  <a class="text-link" target="_blank" rel="noopener" href="https://github.com/LYChen328/LycTechStack.github.io/issues/new?title=%E3%80%90%E7%8E%AF%E5%A2%83%E6%B8%B2%E6%9F%93%E3%80%91%EF%BC%88%E5%85%AD%EF%BC%89%E6%B0%B4%E9%9D%A2%E3%80%81%E8%BF%91%E5%B2%B8%E4%B8%8E%E9%A2%91%E8%B0%B1%E6%B5%B7%E6%B4%8B&amp;body=https%3A%2F%2Flychen328.github.io%2FLycTechStack.github.io%2F2026%2F11%2F19%2F20261119-env-06-ocean%2F&amp;labels=Gitalk%2Cf72d8dc855e315b3b39d96a652bcc264">发起讨论</a>
+</section>
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+      </div>
+    </div>
+  </article>
+</div>
+</main>
+  <footer class="site-footer"><div class="wrap footer-inner">
+    <div class="footer-brand"><img src="/LycTechStack.github.io/images/journal/mark.svg" alt="" width="24" height="24"><strong>LycTechStack</strong><span>© 2021–2026 Lyc</span></div>
+    <div class="footer-links">
+      <a href="mailto:27487358@qq.com">联系作者</a>
+      <a href="/LycTechStack.github.io/atom.xml"><svg class="icon" width="14" height="14" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#rss"/></svg> RSS</a>
+      <a href="#top">返回顶部 ↑</a>
+    </div>
+  </div>
+  <div class="wrap footer-counts">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+  <span id="busuanzi_container_site_uv" style="display:none">访客 <span id="busuanzi_value_site_uv"></span></span>
+  <span id="busuanzi_container_site_pv" style="display:none">浏览 <span id="busuanzi_value_site_pv"></span></span>
+
+</div>
+  </footer>
+  
+    <dialog class="search-dialog" aria-labelledby="search-title" data-index="/LycTechStack.github.io/search.xml">
+  <div class="dialog-head"><h2 id="search-title">搜索笔记</h2><form method="dialog"><button class="icon-button" aria-label="关闭搜索"><svg class="icon" width="18" height="18" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#close"/></svg></button></form></div>
+  <label class="search-field"><svg class="icon" width="20" height="20" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#search"/></svg><input type="search" aria-label="搜索标题、标签或正文" placeholder="输入标题、标签或正文关键词…" autocomplete="off" spellcheck="false"></label>
+  <div class="search-suggestions"><p>常用标签</p><div class="tag-cloud"><button type="button" data-query="计算机图形学"># 计算机图形学</button><button type="button" data-query="C++"># C++</button><button type="button" data-query="实时渲染"># 实时渲染</button><button type="button" data-query="光线追踪"># 光线追踪</button><button type="button" data-query="游戏引擎"># 游戏引擎</button><button type="button" data-query="设计模式"># 设计模式</button></div></div>
+  <p class="search-status" role="status"></p><ol class="search-results"></ol>
+</dialog>
+
+    <script defer src="/LycTechStack.github.io/js/journal-search.js"></script>
+  
+  
+    
+<script src="/LycTechStack.github.io/js/utils.js"></script>
+
+  
+  
+  
+</body>
+</html>

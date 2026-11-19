@@ -1,0 +1,249 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a1017">
+  <meta name="generator" content="Hexo 5.4.1">
+  <title>【环境渲染】（五）大气散射、空气透视与体积光 | LycTechStack</title>
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"lychen328.github.io","root":"/LycTechStack.github.io/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":true,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":true,"nav":null,"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":5,"unescape":false,"preload":false},"motion":{"enable":false,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+  <meta name="description" content="日落时，太阳附近的天空发亮，背光的山脊却逐渐失去对比度。两者来自同一条光路上的散射和吸收。接下来先区分观察方向对天空颜色的影响，再把天空、远山和穿过树冠的光束放进同一个合成过程。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【环境渲染】（五）大气散射、空气透视与体积光">
+<meta property="og:url" content="https://lychen328.github.io/LycTechStack.github.io/2026/11/19/20261119-env-05-atmosphere/index.html">
+<meta property="og:site_name" content="LycTechStack">
+<meta property="og:description" content="日落时，太阳附近的天空发亮，背光的山脊却逐渐失去对比度。两者来自同一条光路上的散射和吸收。接下来先区分观察方向对天空颜色的影响，再把天空、远山和穿过树冠的光束放进同一个合成过程。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2026/11/19/20261119-env-05-atmosphere/phase-functions.png">
+<meta property="article:published_time" content="2026-11-19T02:00:04.000Z">
+<meta property="article:modified_time" content="2026-11-19T12:29:44.218Z">
+<meta property="article:author" content="Lyc">
+<meta property="article:tag" content="计算机图形学">
+<meta property="article:tag" content="实时渲染">
+<meta property="article:tag" content="体积渲染">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://lychen328.github.io/LycTechStack.github.io/2026/11/19/20261119-env-05-atmosphere/phase-functions.png">
+  <link rel="canonical" href="https://lychen328.github.io/LycTechStack.github.io/2026/11/19/20261119-env-05-atmosphere/">
+  <link rel="icon" href="/LycTechStack.github.io/images/journal/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/LycTechStack.github.io/css/journal.css?v=weather1">
+  
+  
+
+
+
+
+
+
+  <script defer src="/LycTechStack.github.io/js/journal.js?v=ringworld"></script>
+  <script defer src="/LycTechStack.github.io/js/world-field.js"></script>
+<link rel="alternate" href="/LycTechStack.github.io/atom.xml" title="LycTechStack" type="application/atom+xml">
+</head>
+<body id="top" class="reading-view">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="world-grid" aria-hidden="true"></div>
+  <canvas class="star-field" aria-hidden="true"></canvas>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="wordmark" href="/LycTechStack.github.io/" rel="home"><img src="/LycTechStack.github.io/images/journal/mark.svg" alt="" width="33" height="33">LycTechStack</a>
+      <nav class="primary-nav" id="primary-nav" aria-label="主导航">
+        
+          
+          <a href="/LycTechStack.github.io/">首页</a>
+        
+          
+          <a href="/LycTechStack.github.io/archives/">归档</a>
+        
+          
+          <a href="/LycTechStack.github.io/categories/">分类</a>
+        
+          
+          <a href="/LycTechStack.github.io/tags/">标签</a>
+        
+          
+          <a href="/LycTechStack.github.io/about/">关于</a>
+        
+      </nav>
+      <div class="header-tools">
+        <button class="search-trigger js-only" type="button" aria-label="搜索文章" aria-haspopup="dialog"><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#search"/></svg><span>搜索</span><kbd>/</kbd></button>
+        <button class="motion-toggle js-only" type="button" aria-label="暂停背景动效" title="暂停背景动效"><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#pause"/></svg><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#play"/></svg></button>
+        <a class="github-link" href="https://github.com/LYChen328/" aria-label="Lyc 的 GitHub" target="_blank" rel="noopener"><svg class="icon" width="19" height="19" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#github"/></svg></a>
+        <button class="menu-toggle js-only" type="button" aria-label="展开导航" aria-expanded="false" aria-controls="primary-nav"><svg class="icon" width="22" height="22" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#menu"/></svg></button>
+      </div>
+    </div>
+    <div class="reading-progress" aria-hidden="true"></div>
+  </header>
+  <main id="main" tabindex="-1">
+<div class="wrap inner-page post-page">
+  <div class="breadcrumbs"><a href="/LycTechStack.github.io/">首页</a><span>/</span><a href="/LycTechStack.github.io/archives/">归档</a>
+    <span>/</span><a href="/LycTechStack.github.io/categories/%E7%8E%AF%E5%A2%83%E6%B8%B2%E6%9F%93/">环境渲染</a>
+  </div>
+  <article itemscope itemtype="https://schema.org/BlogPosting">
+    <header class="article-heading">
+      
+      <p class="kicker article-series">环境渲染<span>第五篇</span></p>
+      <h1 class="page-title" itemprop="headline">大气散射、空气透视与体积光</h1>
+      <div class="article-meta"><span itemprop="author">Lyc</span><i></i>
+        <time datetime="2026-11-19T02:00:04.000Z" itemprop="datePublished">2026-11-19</time>
+        <i></i><span>1.6k 字</span>
+        <i></i><span><svg class="icon" width="14" height="14" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#clock"/></svg>约 1 分钟</span>
+        <span id="busuanzi_container_page_pv" style="display:none"><span id="busuanzi_value_page_pv"></span> 次阅读</span>
+      </div>
+    </header>
+    
+    <div class="article-layout">
+      <aside class="toc-panel"><details open><summary><svg class="icon" width="17" height="17" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#toc"/></svg>文章目录 <svg class="icon" width="15" height="15" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#chevron"/></svg></summary><nav aria-label="文章目录"><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E6%96%B9%E5%90%91%E5%86%B3%E5%AE%9A%E6%95%A3%E5%B0%84%EF%BC%8C%E8%B7%9D%E7%A6%BB%E5%86%B3%E5%AE%9A%E9%80%8F%E5%B0%84"><span class="toc-text">1 方向决定散射，距离决定透射</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E6%8A%8A%E5%93%AA%E4%BA%9B%E7%A7%AF%E5%88%86%E6%94%BE%E8%BF%9B-LUT"><span class="toc-text">2 把哪些积分放进 LUT</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E8%AE%A9%E4%B8%80%E6%9D%9F%E5%85%89%E5%85%B7%E6%9C%89%E9%81%AE%E6%8C%A1%E5%92%8C%E5%8E%9A%E5%BA%A6"><span class="toc-text">3 让一束光具有遮挡和厚度</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-%E7%A7%BB%E5%8A%A8%E7%AB%AF%E6%8A%93%E4%BD%8F%E6%97%A5%E5%A4%9C%E5%8F%98%E5%8C%96%E7%9A%84%E4%B8%BB%E8%A6%81%E4%BF%A1%E5%8F%B7"><span class="toc-text">4 移动端抓住日夜变化的主要信号</span></a></li></ol></nav></details></aside>
+      <div class="article-column">
+        <div class="prose post-body" itemprop="articleBody">
+          
+          <p>日落时，太阳附近的天空发亮，背光的山脊却逐渐失去对比度。两者来自同一条光路上的散射和吸收。接下来先区分观察方向对天空颜色的影响，再把天空、远山和穿过树冠的光束放进同一个合成过程。</p>
+<span id="more"></span>
+
+<h3 id="1-方向决定散射，距离决定透射"><a href="#1-方向决定散射，距离决定透射" class="headerlink" title="1 方向决定散射，距离决定透射"></a>1 方向决定散射，距离决定透射</h3><p>分子引起的瑞利散射在可见光范围内对短波长更强，角分布近似 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>P</mi><mi>R</mi></msub><mo stretchy="false">(</mo><mi>μ</mi><mo stretchy="false">)</mo><mo>=</mo><mn>3</mn><mo stretchy="false">(</mo><mn>1</mn><mo>+</mo><msup><mi>μ</mi><mn>2</mn></msup><mo stretchy="false">)</mo><mi mathvariant="normal">/</mi><mo stretchy="false">(</mo><mn>16</mn><mi>π</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">P_R(\mu)=3(1+\mu^2)/(16\pi)</annotation></semantics></math></span>。气溶胶的散射有明显的前向峰，实时实现常用 Henyey–Greenstein 相函数近似。这里令 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>μ</mi></mrow><annotation encoding="application/x-tex">\mu</annotation></semantics></math></span> 表示入射光传播方向与散射后传播方向的点积，<span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>μ</mi><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\mu=1</annotation></semantics></math></span> 是前向散射；在着色器中同时用“采样点指向太阳”和“相机指向采样点”两个向量取点积，得到同样的余弦。</p>
+<span class="display-equation"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>P</mi><mrow><mi>H</mi><mi>G</mi></mrow></msub><mo stretchy="false">(</mo><mi>μ</mi><mo separator="true">,</mo><mi>g</mi><mo stretchy="false">)</mo><mo>=</mo><mfrac><mrow><mn>1</mn><mo>−</mo><msup><mi>g</mi><mn>2</mn></msup></mrow><mrow><mn>4</mn><mi>π</mi><mo stretchy="false">(</mo><mn>1</mn><mo>+</mo><msup><mi>g</mi><mn>2</mn></msup><mo>−</mo><mn>2</mn><mi>g</mi><mi>μ</mi><msup><mo stretchy="false">)</mo><mrow><mn>3</mn><mi mathvariant="normal">/</mi><mn>2</mn></mrow></msup></mrow></mfrac><mi mathvariant="normal">.</mi></mrow><annotation encoding="application/x-tex">P_{HG}(\mu,g)=\frac{1-g^2}{4\pi(1+g^2-2g\mu)^{3/2}}.</annotation></semantics></math></span></span>
+
+<p><a href="phase-functions.png"><img src="/LycTechStack.github.io/2026/11/19/20261119-env-05-atmosphere/phase-functions.png" alt="瑞利相函数与两种各向异性参数下的前向峰，纵轴为对数刻度" loading="lazy"></a></p>
+<p>正的 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>g</mi></mrow><annotation encoding="application/x-tex">g</annotation></semantics></math></span> 越大，太阳周围的亮晕越集中。沿光线再积分随高度变化的分子、气溶胶密度及臭氧吸收。太阳到采样点的透射决定到达这里的能量，采样点到相机的透射决定这部分能量还有多少进入画面。两段光路少算任意一段，低太阳高度时都会偏亮。积分前先求射线与大气顶、行星地表的交点，背阳面还要判定太阳光是否被行星挡住。</p>
+<h3 id="2-把哪些积分放进-LUT"><a href="#2-把哪些积分放进-LUT" class="headerlink" title="2 把哪些积分放进 LUT"></a>2 把哪些积分放进 LUT</h3><p>一种高质量路径是分别预计算透射、单次与多次散射等量，用多维参数化覆盖观察高度、天顶角和太阳方向，运行时查表组合。它适合大气参数相对固定、观察者可从地面移动到高空的场景。另一条生产路径把多次散射做成低维近似，再按当前相机与太阳重建天空和空气透视。<a target="_blank" rel="noopener" href="https://github.com/ebruneton/precomputed_atmospheric_scattering">Bruneton 的预计算实现</a> · <a target="_blank" rel="noopener" href="https://sebh.github.io/publications/egsr2020.pdf">Hillaire 的可扩展大气模型</a></p>
+<table>
+<thead>
+<tr>
+<th>缓存</th>
+<th>主要自变量</th>
+<th>需要更新的典型条件</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>透射率</td>
+<td>高度、射线天顶角</td>
+<td>行星半径或介质参数改变</td>
+</tr>
+<tr>
+<td>多次散射近似</td>
+<td>高度、太阳天顶角</td>
+<td>介质或地表平均反照率改变</td>
+</tr>
+<tr>
+<td>天空视图</td>
+<td>当前观察高度下的天空方向</td>
+<td>相机高度、太阳相对方向或介质改变</td>
+</tr>
+<tr>
+<td>空气透视体</td>
+<td>当前视锥中的方向与距离</td>
+<td>相机、光照或大气改变</td>
+</tr>
+</tbody></table>
+<p>天空视图在地平线附近需要更多采样，那里光程变化最快。太阳圆盘可解析绘制并乘太阳路径的透射率，避免把小圆盘抹进低分辨率天空表。查表重建的是线性 HDR 辐亮度，曝光和色调映射放在几何与介质合成以后。</p>
+<h3 id="3-让一束光具有遮挡和厚度"><a href="#3-让一束光具有遮挡和厚度" class="headerlink" title="3 让一束光具有遮挡和厚度"></a>3 让一束光具有遮挡和厚度</h3><p>树列后面的光束需要一个随空间变化的可见性 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>V</mi><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">V(x)</annotation></semantics></math></span>。在相机射线上采样介质，每个样本把太阳照度、太阳路径透射率、散射系数、相函数和阴影可见性相乘，再按眼路径的透射率累积。屏幕空间径向模糊能做逆光光晕，但相机背向太阳、遮挡移出屏幕或光束穿过屏幕边缘时会丢信息。世界空间阴影图配合近景雾积分能保住这些情况。</p>
+<p>工程上可以让近段局部雾包含近段大气，远段由空气透视负责。在分界深度处保存两段的 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">(</mo><mi>L</mi><mo separator="true">,</mo><mi>T</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(L,T)</annotation></semantics></math></span>，拼接为 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>L</mi><mrow><mi mathvariant="normal">n</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">r</mi></mrow></msub><mo>+</mo><msub><mi>T</mi><mrow><mi mathvariant="normal">n</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">r</mi></mrow></msub><msub><mi>L</mi><mrow><mi mathvariant="normal">f</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">r</mi></mrow></msub></mrow><annotation encoding="application/x-tex">L_\mathrm{near}+T_\mathrm{near}L_\mathrm{far}</annotation></semantics></math></span> 和 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>T</mi><mrow><mi mathvariant="normal">n</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">r</mi></mrow></msub><msub><mi>T</mi><mrow><mi mathvariant="normal">f</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">r</mi></mrow></msub></mrow><annotation encoding="application/x-tex">T_\mathrm{near}T_\mathrm{far}</annotation></semantics></math></span>。若两种介质占据同一深度区间，先在样本处相加它们的消光与散射源项，再积分。把整段空气透视和整段“已含空气”的雾各叠一次，会让远山无故又白一层。</p>
+<h3 id="4-移动端抓住日夜变化的主要信号"><a href="#4-移动端抓住日夜变化的主要信号" class="headerlink" title="4 移动端抓住日夜变化的主要信号"></a>4 移动端抓住日夜变化的主要信号</h3><p>固定大气参数时可离线烘焙透射率与多次散射表。天空视图按太阳高度变化阈值或分帧更新，更新完整后交换前后台纹理；同一帧的天空和水面反射使用同一套结果。地面驾驶视角可以用一组线性或非线性距离切片近似空气透视；不需要穿行的远景光束可用有深度交点淡出的受光几何，近景重点光束再做少步阴影采样。</p>
+<p>给场景放一排同材质的灰色山体，固定曝光，从正午拖到日落，同时观察逆光和背光方向。检查太阳圆盘是否跳动、近远交界有无接缝、镜头升高后地平线是否翻色。若天空在转向时过期，先分清是 LUT 更新频率还是方向参数化的问题，再决定要提高哪张纹理的分辨率。</p>
+<p>光照落到水面后还要考虑反射与折射，见 <a href="/LycTechStack.github.io/2026/11/19/20261119-env-06-ocean/" title="水面与频谱海洋">水面与频谱海洋</a>。</p>
+
+        </div>
+        <div class="tag-cloud post-tags"><a href="/LycTechStack.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6/" rel="tag"><span>#</span> 计算机图形学</a><a href="/LycTechStack.github.io/tags/%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93/" rel="tag"><span>#</span> 实时渲染</a><a href="/LycTechStack.github.io/tags/%E4%BD%93%E7%A7%AF%E6%B8%B2%E6%9F%93/" rel="tag"><span>#</span> 体积渲染</a></div>
+        
+        <aside class="credit"><strong>文章版权</strong><p>本文收录于 <a href="/LycTechStack.github.io/">LycTechStack</a>，仅供学习与参考。转载时请注明作者和出处。部分资料来自网络，如有侵权请联系博主。</p></aside>
+        
+  <div class="popular-posts-header">相关文章</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2026/11/19/20261119-env-03-clouds/" rel="bookmark">【环境渲染】（三）体积云的密度、光照与时域重建</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/05/12/20220512-RTR-图形渲染管线/" rel="bookmark">【Real-Time Rendering】图形渲染管线</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/05/13/20220513-RTR-GPU管线/" rel="bookmark">【Real-Time Rendering】GPU管线</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/05/13/20220513-RTR-图形渲染和视觉外观/" rel="bookmark">【Real-Time Rendering】图形渲染和视觉处理</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/05/14/20220514-RTR-模板测试和深度测试/" rel="bookmark">【Real-Time Rendering】模板测试和深度测试</a></div>
+    </li>
+  </ul>
+
+        
+          
+          
+          <nav class="article-nav" aria-label="相邻文章">
+            <a href="/LycTechStack.github.io/2026/11/19/20261119-env-06-ocean/" rel="prev"><small>上一篇</small>【环境渲染】（六）水面、近岸与频谱海洋</a>
+            <a href="/LycTechStack.github.io/2026/11/19/20261119-env-04-fog/" rel="next"><small>下一篇</small>【环境渲染】（四）视锥体素与局部体积雾</a>
+          </nav>
+        
+        
+    
+
+<section class="article-discussion" aria-labelledby="discussion-title">
+  <h2 id="discussion-title">文章讨论</h2>
+  <a class="text-link" target="_blank" rel="noopener" href="https://github.com/LYChen328/LycTechStack.github.io/issues?q=is%3Aissue%20label%3A14bbc19a679873a35fa18caf79ec794b">在 GitHub 查看与回复</a>
+  <a class="text-link" target="_blank" rel="noopener" href="https://github.com/LYChen328/LycTechStack.github.io/issues/new?title=%E3%80%90%E7%8E%AF%E5%A2%83%E6%B8%B2%E6%9F%93%E3%80%91%EF%BC%88%E4%BA%94%EF%BC%89%E5%A4%A7%E6%B0%94%E6%95%A3%E5%B0%84%E3%80%81%E7%A9%BA%E6%B0%94%E9%80%8F%E8%A7%86%E4%B8%8E%E4%BD%93%E7%A7%AF%E5%85%89&amp;body=https%3A%2F%2Flychen328.github.io%2FLycTechStack.github.io%2F2026%2F11%2F19%2F20261119-env-05-atmosphere%2F&amp;labels=Gitalk%2C14bbc19a679873a35fa18caf79ec794b">发起讨论</a>
+</section>
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+      </div>
+    </div>
+  </article>
+</div>
+</main>
+  <footer class="site-footer"><div class="wrap footer-inner">
+    <div class="footer-brand"><img src="/LycTechStack.github.io/images/journal/mark.svg" alt="" width="24" height="24"><strong>LycTechStack</strong><span>© 2021–2026 Lyc</span></div>
+    <div class="footer-links">
+      <a href="mailto:27487358@qq.com">联系作者</a>
+      <a href="/LycTechStack.github.io/atom.xml"><svg class="icon" width="14" height="14" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#rss"/></svg> RSS</a>
+      <a href="#top">返回顶部 ↑</a>
+    </div>
+  </div>
+  <div class="wrap footer-counts">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+  <span id="busuanzi_container_site_uv" style="display:none">访客 <span id="busuanzi_value_site_uv"></span></span>
+  <span id="busuanzi_container_site_pv" style="display:none">浏览 <span id="busuanzi_value_site_pv"></span></span>
+
+</div>
+  </footer>
+  
+    <dialog class="search-dialog" aria-labelledby="search-title" data-index="/LycTechStack.github.io/search.xml">
+  <div class="dialog-head"><h2 id="search-title">搜索笔记</h2><form method="dialog"><button class="icon-button" aria-label="关闭搜索"><svg class="icon" width="18" height="18" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#close"/></svg></button></form></div>
+  <label class="search-field"><svg class="icon" width="20" height="20" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#search"/></svg><input type="search" aria-label="搜索标题、标签或正文" placeholder="输入标题、标签或正文关键词…" autocomplete="off" spellcheck="false"></label>
+  <div class="search-suggestions"><p>常用标签</p><div class="tag-cloud"><button type="button" data-query="计算机图形学"># 计算机图形学</button><button type="button" data-query="C++"># C++</button><button type="button" data-query="实时渲染"># 实时渲染</button><button type="button" data-query="光线追踪"># 光线追踪</button><button type="button" data-query="游戏引擎"># 游戏引擎</button><button type="button" data-query="设计模式"># 设计模式</button></div></div>
+  <p class="search-status" role="status"></p><ol class="search-results"></ol>
+</dialog>
+
+    <script defer src="/LycTechStack.github.io/js/journal-search.js"></script>
+  
+  
+    
+<script src="/LycTechStack.github.io/js/utils.js"></script>
+
+  
+  
+  
+</body>
+</html>

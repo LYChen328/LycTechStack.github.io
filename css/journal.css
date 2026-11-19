@@ -99,6 +99,11 @@ kbd { font: 11px/16px var(--mono); text-align: center; width: 18px; color: #aab6
 .world-sheet { width: 100%; height: 100%; }
 .world-sheet picture, .world-sheet img { display: block; width: 100%; height: 100%; }
 .world-sheet img { object-fit: cover; }
+.world-sheet .weather-plate { position: absolute; inset: 0; }
+.plate-snow { opacity: var(--snow-layer, 0); }
+.plate-clear { opacity: var(--clear-layer, 0); }
+.weather-field { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; pointer-events: none; }
+.world-wash::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, #061525c9, #07192cb8 48%, transparent 91%); opacity: var(--day-shade, .26); }
 .world-transit { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; pointer-events: none; }
 .world-transit path { vector-effect: non-scaling-stroke; stroke-linecap: round; animation: transit-pass 24s linear infinite paused; }
 .world-transit .orbit-light { stroke: #cdfffa; stroke-width: 1.6px; stroke-dasharray: 4 364 1 631; animation-delay: -5s; }
@@ -161,6 +166,7 @@ kbd { font: 11px/16px var(--mono); text-align: center; width: 18px; color: #aab6
 .region-geometry { --region: #b2e5ec; }
 .region-pipeline { --region: #90e3d9; }
 .region-engine { --region: #a0efc7; }
+.region-environment { --region: #9be6f2; }
 .region-runtime { --region: #c9d5ff; }
 .region-lighting { --region: #c1e7d9; }
 .atlas-tracks { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; fill: none; pointer-events: none; }
@@ -231,6 +237,16 @@ kbd { font: 11px/16px var(--mono); text-align: center; width: 18px; color: #aab6
 .map-key strong { font-weight: 600; font-size: 12px; }
 .map-key span, .atlas-column h2 { display: inline-flex; align-items: center; gap: 6px; }
 .map-key span { font-size: 11px; }
+.weather-next {
+  position: absolute; z-index: 4; bottom: 10px; right: max(var(--gutter), calc((100% - var(--wrap)) / 2));
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 38px;
+  padding: 0 10px; color: #e9f5f6; border: 1px solid #71939d; border-radius: 4px;
+  background: #0b1c29ed; font-size: 12px;
+}
+.weather-next i { width: 7px; height: 7px; border-radius: 50%; background: #91cce8; }
+[data-weather="clear"] .weather-next i { background: #f9c77d; }
+[data-weather="snow"] .weather-next i { background: #e2edf5; }
+.weather-next:hover { border-color: var(--mint); }
 .map-key i, .atlas-column h2 i { width: 8px; height: 8px; }
 .atlas-index { display: none; background: #0d1921f5; border-top: 1px solid #344751; }
 .atlas-index.has-unmapped { display: block; }
@@ -390,6 +406,8 @@ kbd { font: 11px/16px var(--mono); text-align: center; width: 18px; color: #aab6
 .highlight :is(.number,.literal,.symbol,.variable) { color: #edb88b; }
 .highlight :is(.title,.type,.function,.section) { color: #8bcee9; }
 .prose mjx-container[display="true"] { max-width: 100%; overflow: auto hidden; }
+.prose .display-equation { display: block; max-width: 100%; padding-block: .45em; overflow: auto hidden; }
+.display-equation math { width: max-content; margin-inline: auto; }
 .post-tags { margin: 25px 0; }
 .credit { font-size: 13px; line-height: 1.8; margin: 25px 0; }
 .credit p { margin-top: 4px; }
@@ -530,6 +548,7 @@ body:has(.search-dialog[open]) { overflow: hidden; }
   .hero .atlas-index, .map-branches { display: none; }
 }
 @media (pointer: coarse) {
+  .weather-next { min-height: 44px; }
   .map-branches a { min-height: 36px; }
   .atlas-column a { min-height: 44px; }
 }

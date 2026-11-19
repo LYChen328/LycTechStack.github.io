@@ -1,0 +1,220 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a1017">
+  <meta name="generator" content="Hexo 5.4.1">
+  <title>【环境渲染】（二）积雪、湿润表面、水滴与涟漪 | LycTechStack</title>
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"lychen328.github.io","root":"/LycTechStack.github.io/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":true,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":true,"nav":null,"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":5,"unescape":false,"preload":false},"motion":{"enable":false,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+  <meta name="description" content="雨停以后，铁栏杆上先留下水珠，石板仍然潮湿，低洼处的水面却能映出整扇窗。一个全局雨量参数只能说明此刻有没有水落下。要得到这三个不同的时间尺度，需要让表面记住接收了多少水、多少雪，以及它们能流到哪里。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【环境渲染】（二）积雪、湿润表面、水滴与涟漪">
+<meta property="og:url" content="https://lychen328.github.io/LycTechStack.github.io/2026/11/19/20261119-env-02-surfaces/index.html">
+<meta property="og:site_name" content="LycTechStack">
+<meta property="og:description" content="雨停以后，铁栏杆上先留下水珠，石板仍然潮湿，低洼处的水面却能映出整扇窗。一个全局雨量参数只能说明此刻有没有水落下。要得到这三个不同的时间尺度，需要让表面记住接收了多少水、多少雪，以及它们能流到哪里。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2026/11/19/20261119-env-02-surfaces/puddle-section.png">
+<meta property="article:published_time" content="2026-11-19T02:00:07.000Z">
+<meta property="article:modified_time" content="2026-11-19T12:29:44.219Z">
+<meta property="article:author" content="Lyc">
+<meta property="article:tag" content="计算机图形学">
+<meta property="article:tag" content="实时渲染">
+<meta property="article:tag" content="天气系统">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://lychen328.github.io/LycTechStack.github.io/2026/11/19/20261119-env-02-surfaces/puddle-section.png">
+  <link rel="canonical" href="https://lychen328.github.io/LycTechStack.github.io/2026/11/19/20261119-env-02-surfaces/">
+  <link rel="icon" href="/LycTechStack.github.io/images/journal/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/LycTechStack.github.io/css/journal.css?v=weather1">
+  
+  
+
+
+
+
+
+
+  <script defer src="/LycTechStack.github.io/js/journal.js?v=ringworld"></script>
+  <script defer src="/LycTechStack.github.io/js/world-field.js"></script>
+<link rel="alternate" href="/LycTechStack.github.io/atom.xml" title="LycTechStack" type="application/atom+xml">
+</head>
+<body id="top" class="reading-view">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="world-grid" aria-hidden="true"></div>
+  <canvas class="star-field" aria-hidden="true"></canvas>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="wordmark" href="/LycTechStack.github.io/" rel="home"><img src="/LycTechStack.github.io/images/journal/mark.svg" alt="" width="33" height="33">LycTechStack</a>
+      <nav class="primary-nav" id="primary-nav" aria-label="主导航">
+        
+          
+          <a href="/LycTechStack.github.io/">首页</a>
+        
+          
+          <a href="/LycTechStack.github.io/archives/">归档</a>
+        
+          
+          <a href="/LycTechStack.github.io/categories/">分类</a>
+        
+          
+          <a href="/LycTechStack.github.io/tags/">标签</a>
+        
+          
+          <a href="/LycTechStack.github.io/about/">关于</a>
+        
+      </nav>
+      <div class="header-tools">
+        <button class="search-trigger js-only" type="button" aria-label="搜索文章" aria-haspopup="dialog"><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#search"/></svg><span>搜索</span><kbd>/</kbd></button>
+        <button class="motion-toggle js-only" type="button" aria-label="暂停背景动效" title="暂停背景动效"><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#pause"/></svg><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#play"/></svg></button>
+        <a class="github-link" href="https://github.com/LYChen328/" aria-label="Lyc 的 GitHub" target="_blank" rel="noopener"><svg class="icon" width="19" height="19" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#github"/></svg></a>
+        <button class="menu-toggle js-only" type="button" aria-label="展开导航" aria-expanded="false" aria-controls="primary-nav"><svg class="icon" width="22" height="22" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#menu"/></svg></button>
+      </div>
+    </div>
+    <div class="reading-progress" aria-hidden="true"></div>
+  </header>
+  <main id="main" tabindex="-1">
+<div class="wrap inner-page post-page">
+  <div class="breadcrumbs"><a href="/LycTechStack.github.io/">首页</a><span>/</span><a href="/LycTechStack.github.io/archives/">归档</a>
+    <span>/</span><a href="/LycTechStack.github.io/categories/%E7%8E%AF%E5%A2%83%E6%B8%B2%E6%9F%93/">环境渲染</a>
+  </div>
+  <article itemscope itemtype="https://schema.org/BlogPosting">
+    <header class="article-heading">
+      
+      <p class="kicker article-series">环境渲染<span>第二篇</span></p>
+      <h1 class="page-title" itemprop="headline">积雪、湿润表面、水滴与涟漪</h1>
+      <div class="article-meta"><span itemprop="author">Lyc</span><i></i>
+        <time datetime="2026-11-19T02:00:07.000Z" itemprop="datePublished">2026-11-19</time>
+        <i></i><span>1.6k 字</span>
+        <i></i><span><svg class="icon" width="14" height="14" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#clock"/></svg>约 1 分钟</span>
+        <span id="busuanzi_container_page_pv" style="display:none"><span id="busuanzi_value_page_pv"></span> 次阅读</span>
+      </div>
+    </header>
+    
+    <div class="article-layout">
+      <aside class="toc-panel"><details open><summary><svg class="icon" width="17" height="17" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#toc"/></svg>文章目录 <svg class="icon" width="15" height="15" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#chevron"/></svg></summary><nav aria-label="文章目录"><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E6%8A%8A%E6%8E%A5%E6%94%B6%E9%87%8F%E4%B8%8E%E6%9D%90%E8%B4%A8%E5%93%8D%E5%BA%94%E5%88%86%E5%BC%80"><span class="toc-text">1 把接收量与材质响应分开</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E4%B8%80%E5%B1%82%E6%B0%B4%E6%80%8E%E6%A0%B7%E6%94%B9%E5%8F%98-BRDF"><span class="toc-text">2 一层水怎样改变 BRDF</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E9%9B%AA%E7%9A%84%E5%8E%9A%E5%BA%A6%E3%80%81%E6%B0%B4%E6%BB%B4%E4%B8%8E%E8%90%BD%E7%82%B9%E6%B3%A2%E7%BA%B9"><span class="toc-text">3 雪的厚度、水滴与落点波纹</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-%E7%A7%BB%E5%8A%A8%E7%AB%AF%E5%85%88%E4%BF%9D%E4%BD%8F%E5%93%AA%E4%BA%9B%E7%BB%86%E8%8A%82"><span class="toc-text">4 移动端先保住哪些细节</span></a></li></ol></nav></details></aside>
+      <div class="article-column">
+        <div class="prose post-body" itemprop="articleBody">
+          
+          <p>雨停以后，铁栏杆上先留下水珠，石板仍然潮湿，低洼处的水面却能映出整扇窗。一个全局雨量参数只能说明此刻有没有水落下。要得到这三个不同的时间尺度，需要让表面记住接收了多少水、多少雪，以及它们能流到哪里。</p>
+<span id="more"></span>
+
+<h3 id="1-把接收量与材质响应分开"><a href="#1-把接收量与材质响应分开" class="headerlink" title="1 把接收量与材质响应分开"></a>1 把接收量与材质响应分开</h3><p>静态场景可在世界空间俯视纹理中存雪厚、湿润度和洼地积水，移动物体另用局部 UV 或对象空间图集，避免一辆车驶过水洼就把车顶纹理拖走。每次低频更新读取降水强度、遮雨图、坡度、孔隙率和温度。积雪接收量近似与几何法线和来雪反方向点积的正部成正比。用平滑的角度区间衰减陡坡，再让融化的雪给湿润层供水。高频法线贴图只影响着色，用它判定落雪会让粗糙墙面布满白色噪点。</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">melt  = min(snow, meltRate * dt)</span><br><span class="line">snow  = clamp(snow + snowfall * exposure * slopeMask * dt - melt, 0, snowCap)</span><br><span class="line">water = max(0, water + rainfall * exposure * dt + snowWaterRatio * melt</span><br><span class="line">                    - (drainRate + evaporationRate) * dt)</span><br></pre></td></tr></table></figure>
+
+<p>这里的雪厚和水深以长度计，<code>snowWaterRatio</code> 把雪厚损失换算为等效水深。<code>drainRate</code> 可以先按材质近似，若水洼需要水沿坡流动时，再由相邻格的水面高差计算出流，限制单步总出流不超过本格存量。</p>
+<h3 id="2-一层水怎样改变-BRDF"><a href="#2-一层水怎样改变-BRDF" class="headerlink" title="2 一层水怎样改变 BRDF"></a>2 一层水怎样改变 BRDF</h3><p>潮湿的多孔基底往往漫反射变暗，表面的水膜则多了一个较光滑的介质界面。空气到水的正视菲涅耳反射率约为 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">(</mo><mo stretchy="false">(</mo><mn>1.33</mn><mo>−</mo><mn>1</mn><mo stretchy="false">)</mo><mi mathvariant="normal">/</mi><mo stretchy="false">(</mo><mn>1.33</mn><mo>+</mo><mn>1</mn><mo stretchy="false">)</mo><msup><mo stretchy="false">)</mo><mn>2</mn></msup><mo>≈</mo><mn>0.02</mn></mrow><annotation encoding="application/x-tex">((1.33-1)/(1.33+1))^2\approx0.02</annotation></semantics></math></span>，掠射时反射明显增强。实现时先算水界面反射，再用进出水膜的透射份额衰减基底项。金属本身的导体参数应留在下层，直接增加 metallic 会让湿石头变成金属。看同一块表面的正视和掠射角，比只盯着一张高光截图更容易判断是否合理。<a target="_blank" rel="noopener" href="https://seblagarde.wordpress.com/2013/03/19/water-drop-3a-physically-based-wet-surfaces/">Physically Based Wet Surfaces</a></p>
+<p>洼地的覆盖可由局部水位 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>H</mi></mrow><annotation encoding="application/x-tex">H</annotation></semantics></math></span> 和地表高度 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">h(x)</annotation></semantics></math></span> 得到，深度为 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>max</mi><mo>⁡</mo><mo stretchy="false">(</mo><mn>0</mn><mo separator="true">,</mo><mi>H</mi><mo>−</mo><mi>h</mi><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\max(0,H-h(x))</annotation></semantics></math></span>。浅层仍能看到石板法线，水深增加后逐渐改用水面法线，岸边用一个像素左右的平滑宽度抑制闪烁。地形高度、排水方向和美术绘制的积水掩码共同限制水面，避免雨一大就连石头顶部也成了镜面。</p>
+<p><a href="puddle-section.png"><img src="/LycTechStack.github.io/2026/11/19/20261119-env-02-surfaces/puddle-section.png" alt="同一水位下，凹槽形成水面，较高石面仅保留湿润层" loading="lazy"></a></p>
+<h3 id="3-雪的厚度、水滴与落点波纹"><a href="#3-雪的厚度、水滴与落点波纹" class="headerlink" title="3 雪的厚度、水滴与落点波纹"></a>3 雪的厚度、水滴与落点波纹</h3><p>积雪先按厚度混合基底与雪的颜色、粗糙度和法线。厚雪会改变轮廓，近景可让网格沿基底法线做有上限的位移，或用独立的雪壳。坡壁和锐边要共享边界采样，否则会拉出裂口。雪压实后单独记录压实度，脚印底部可以更平滑、更暗；雪厚和脚印的写入分辨率要能覆盖同一脚掌。</p>
+<p>垂直玻璃上的水滴适合在局部坐标放置稀疏实例，采样滴体法线去偏移背后颜色。用重力在切面上的投影给流痕定向，小滴增长到阈值再下滑。水洼上的落点则带有位置、出生时间和振幅。设点到落点距离为 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi></mrow><annotation encoding="application/x-tex">r</annotation></semantics></math></span>，年龄为 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>t</mi></mrow><annotation encoding="application/x-tex">t</annotation></semantics></math></span>，波前围绕 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mi>c</mi><mi>t</mi></mrow><annotation encoding="application/x-tex">r=ct</annotation></semantics></math></span> 展开，用有限宽度的包络乘余弦并随时间衰减。把高度梯度叠入切线空间法线，远处只保留统计性的平铺波纹。按格子收集仍存活的落点，避免每个像素遍历整场雨。<a target="_blank" rel="noopener" href="https://seblagarde.wordpress.com/2013/01/03/water-drop-2b-dynamic-rain-and-its-effects/">Dynamic Rain and Its Effects</a></p>
+<h3 id="4-移动端先保住哪些细节"><a href="#4-移动端先保住哪些细节" class="headerlink" title="4 移动端先保住哪些细节"></a>4 移动端先保住哪些细节</h3><p>让湿润度和雪量按天气的低频时钟更新，可见物体的材质逐帧插值。需要区分材质表面时使用少量打包通道；只有近景水洼才读动态法线或做屏幕空间折射。静态积水优先采样预过滤环境探针，平整的大水面再考虑低频平面反射。在移动端复制一张全屏颜色纹理的代价，应和直接采样环境探针分别测量。</p>
+<p>远处水滴可以换成循环法线图集，每个格子独立相位；远雪只改着色，近处能看到轮廓的边缘才提高几何细分。可以锁住镜头做一轮“开雨、停雨、降雪、升温”，检查屋檐下是否保持干燥、雪融化是否留下水、地表干燥以后水洼是否最后消失。再让一个物体运动，检查状态贴图是否留在了正确的坐标系。</p>
+<p>降水落点来自 <a href="/LycTechStack.github.io/2026/11/19/20261119-env-01-precipitation/" title="GPU 雨雪粒子">GPU 雨雪粒子</a>。角色经过时怎样修改这些状态，见 <a href="/LycTechStack.github.io/2026/11/19/20261119-env-08-interaction/" title="环境交互">环境交互</a>。</p>
+
+        </div>
+        <div class="tag-cloud post-tags"><a href="/LycTechStack.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6/" rel="tag"><span>#</span> 计算机图形学</a><a href="/LycTechStack.github.io/tags/%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93/" rel="tag"><span>#</span> 实时渲染</a><a href="/LycTechStack.github.io/tags/%E5%A4%A9%E6%B0%94%E7%B3%BB%E7%BB%9F/" rel="tag"><span>#</span> 天气系统</a></div>
+        
+        <aside class="credit"><strong>文章版权</strong><p>本文收录于 <a href="/LycTechStack.github.io/">LycTechStack</a>，仅供学习与参考。转载时请注明作者和出处。部分资料来自网络，如有侵权请联系博主。</p></aside>
+        
+  <div class="popular-posts-header">相关文章</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/05/12/20220512-RTR-图形渲染管线/" rel="bookmark">【Real-Time Rendering】图形渲染管线</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/05/13/20220513-RTR-GPU管线/" rel="bookmark">【Real-Time Rendering】GPU管线</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/05/13/20220513-RTR-图形渲染和视觉外观/" rel="bookmark">【Real-Time Rendering】图形渲染和视觉处理</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/05/14/20220514-RTR-模板测试和深度测试/" rel="bookmark">【Real-Time Rendering】模板测试和深度测试</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/05/15/20220515-RTR-程序噪声总结/" rel="bookmark">【Real-Time Rendering】程序噪声总结</a></div>
+    </li>
+  </ul>
+
+        
+          
+          
+          <nav class="article-nav" aria-label="相邻文章">
+            <a href="/LycTechStack.github.io/2026/11/19/20261119-env-03-clouds/" rel="prev"><small>上一篇</small>【环境渲染】（三）体积云的密度、光照与时域重建</a>
+            <a href="/LycTechStack.github.io/2026/11/19/20261119-env-01-precipitation/" rel="next"><small>下一篇</small>【环境渲染】（一）雨雪天气的 GPU 粒子与闪电</a>
+          </nav>
+        
+        
+    
+
+<section class="article-discussion" aria-labelledby="discussion-title">
+  <h2 id="discussion-title">文章讨论</h2>
+  <a class="text-link" target="_blank" rel="noopener" href="https://github.com/LYChen328/LycTechStack.github.io/issues?q=is%3Aissue%20label%3A27c2c16aa1f952bd1b7fd2b0e249834b">在 GitHub 查看与回复</a>
+  <a class="text-link" target="_blank" rel="noopener" href="https://github.com/LYChen328/LycTechStack.github.io/issues/new?title=%E3%80%90%E7%8E%AF%E5%A2%83%E6%B8%B2%E6%9F%93%E3%80%91%EF%BC%88%E4%BA%8C%EF%BC%89%E7%A7%AF%E9%9B%AA%E3%80%81%E6%B9%BF%E6%B6%A6%E8%A1%A8%E9%9D%A2%E3%80%81%E6%B0%B4%E6%BB%B4%E4%B8%8E%E6%B6%9F%E6%BC%AA&amp;body=https%3A%2F%2Flychen328.github.io%2FLycTechStack.github.io%2F2026%2F11%2F19%2F20261119-env-02-surfaces%2F&amp;labels=Gitalk%2C27c2c16aa1f952bd1b7fd2b0e249834b">发起讨论</a>
+</section>
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+      </div>
+    </div>
+  </article>
+</div>
+</main>
+  <footer class="site-footer"><div class="wrap footer-inner">
+    <div class="footer-brand"><img src="/LycTechStack.github.io/images/journal/mark.svg" alt="" width="24" height="24"><strong>LycTechStack</strong><span>© 2021–2026 Lyc</span></div>
+    <div class="footer-links">
+      <a href="mailto:27487358@qq.com">联系作者</a>
+      <a href="/LycTechStack.github.io/atom.xml"><svg class="icon" width="14" height="14" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#rss"/></svg> RSS</a>
+      <a href="#top">返回顶部 ↑</a>
+    </div>
+  </div>
+  <div class="wrap footer-counts">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+  <span id="busuanzi_container_site_uv" style="display:none">访客 <span id="busuanzi_value_site_uv"></span></span>
+  <span id="busuanzi_container_site_pv" style="display:none">浏览 <span id="busuanzi_value_site_pv"></span></span>
+
+</div>
+  </footer>
+  
+    <dialog class="search-dialog" aria-labelledby="search-title" data-index="/LycTechStack.github.io/search.xml">
+  <div class="dialog-head"><h2 id="search-title">搜索笔记</h2><form method="dialog"><button class="icon-button" aria-label="关闭搜索"><svg class="icon" width="18" height="18" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#close"/></svg></button></form></div>
+  <label class="search-field"><svg class="icon" width="20" height="20" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#search"/></svg><input type="search" aria-label="搜索标题、标签或正文" placeholder="输入标题、标签或正文关键词…" autocomplete="off" spellcheck="false"></label>
+  <div class="search-suggestions"><p>常用标签</p><div class="tag-cloud"><button type="button" data-query="计算机图形学"># 计算机图形学</button><button type="button" data-query="C++"># C++</button><button type="button" data-query="实时渲染"># 实时渲染</button><button type="button" data-query="光线追踪"># 光线追踪</button><button type="button" data-query="游戏引擎"># 游戏引擎</button><button type="button" data-query="设计模式"># 设计模式</button></div></div>
+  <p class="search-status" role="status"></p><ol class="search-results"></ol>
+</dialog>
+
+    <script defer src="/LycTechStack.github.io/js/journal-search.js"></script>
+  
+  
+    
+<script src="/LycTechStack.github.io/js/utils.js"></script>
+
+  
+  
+  
+</body>
+</html>

@@ -71,10 +71,106 @@
   <div class="wrap journal-feed inner-page" id="notes">
     <section class="feed-main">
       
-        <p class="kicker" lang="en">JOURNAL ENTRIES</p><h1 class="page-title">文章列表</h1><p class="page-summary">第 6 页，共 14 页</p>
+        <p class="kicker" lang="en">JOURNAL ENTRIES</p><h1 class="page-title">文章列表</h1><p class="page-summary">第 6 页，共 15 页</p>
       
       
 <div class="entry-list">
+  
+    
+    <article class="entry">
+      <div class="entry-meta"><time datetime="2022-05-25T08:51:00.000Z">2022.05.25</time>
+        
+        
+      </div>
+      <h2 class="entry-title">
+        <a href="/LycTechStack.github.io/2022/05/25/20220525-%E9%80%8F%E8%A7%86%E6%8F%92%E5%80%BC%E6%A0%A1%E6%AD%A3/">关于透视插值校正 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
+      </h2>
+      <p>在之前的光栅化渲染器中，我们在光栅化插值的过程中对所有顶点的属性都除以了该顶点的深度值 w，然后又在线性插值之后乘以了该点的深度值，这样才能得到正确的插值属性，这一步叫做透视插值校正。这一节我们来详细讨论...</p>
+    </article>
+  
+    
+    <article class="entry">
+      <div class="entry-meta"><time datetime="2022-05-25T07:34:39.000Z">2022.05.25</time>
+        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/%E5%85%89%E6%A0%85%E5%8C%96%E6%B8%B2%E6%9F%93%E5%99%A8/">光栅化渲染器</a>
+        <span class="meta-pip"></span><span>第九篇</span>
+      </div>
+      <h2 class="entry-title">
+        <a href="/LycTechStack.github.io/2022/05/25/20220525-%E6%B8%B2%E6%9F%93%E5%99%A8-%E6%94%B9%E8%BF%9B%E5%85%89%E6%A0%85%E5%8C%96/">改进光栅化 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
+      </h2>
+      <p>现在我们的渲染管线已经基本具备了所有的要素，但是作为光栅化渲染器，我们目前的光栅化算法太过老旧，扫描线算法简单高效，但难以并行化（毕竟操作的单位是一条线），并且在实现时还存在由于多次插值的精度损失导致的多...</p>
+    </article>
+  
+    
+    <article class="entry">
+      <div class="entry-meta"><time datetime="2022-05-25T03:24:21.000Z">2022.05.25</time>
+        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/%E5%85%89%E6%A0%85%E5%8C%96%E6%B8%B2%E6%9F%93%E5%99%A8/">光栅化渲染器</a>
+        <span class="meta-pip"></span><span>第八篇</span>
+      </div>
+      <h2 class="entry-title">
+        <a href="/LycTechStack.github.io/2022/05/25/20220525-%E6%B8%B2%E6%9F%93%E5%99%A8-%E5%85%89%E6%BA%90/">光源 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
+      </h2>
+      <p>到目前为止我们的渲染管线已经基本为完整了，从模型加载到顶点着色器，再经过裁剪到片元着色器，但在片元着色器中我们目前还只是输出顶点颜色或者纹理值，还没有加入光照计算，这一节我们就来加入光照的计算。最简单的 ...</p>
+    </article>
+  
+    
+    <article class="entry">
+      <div class="entry-meta"><time datetime="2022-05-24T11:51:24.000Z">2022.05.24</time>
+        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/%E5%85%89%E6%A0%85%E5%8C%96%E6%B8%B2%E6%9F%93%E5%99%A8/">光栅化渲染器</a>
+        <span class="meta-pip"></span><span>第七篇</span>
+      </div>
+      <h2 class="entry-title">
+        <a href="/LycTechStack.github.io/2022/05/24/20220524-%E6%B8%B2%E6%9F%93%E5%99%A8-%E5%8A%A0%E8%BD%BD%E6%A8%A1%E5%9E%8B/">加载模型 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
+      </h2>
+      <p>上一节我们实现了各种剔除和裁剪算法，目的是在处理复杂模型和场景的时候也能够保证效率，避免无用计算。这一节我们来向场景中加载模型。</p>
+    </article>
+  
+    
+    <article class="entry">
+      <div class="entry-meta"><time datetime="2022-05-24T03:16:46.000Z">2022.05.24</time>
+        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/%E5%85%89%E6%A0%85%E5%8C%96%E6%B8%B2%E6%9F%93%E5%99%A8/">光栅化渲染器</a>
+        <span class="meta-pip"></span><span>第六篇</span>
+      </div>
+      <h2 class="entry-title">
+        <a href="/LycTechStack.github.io/2022/05/24/20220524-%E6%B8%B2%E6%9F%93%E5%99%A8-%E5%89%94%E9%99%A4%E4%B8%8E%E8%A3%81%E5%89%AA/">剔除与裁剪 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
+      </h2>
+      <p>目前我们已经基本实现了一个最简单的渲染管线，不过还有很多功能没有加入，这一节开始来完善我们的渲染管线。首先在之前的实现中，正方体大多数情况下都只有 3 个面正对我们，其他三个面是看不见的，也就完全不需要渲...</p>
+    </article>
+  
+    
+    <article class="entry">
+      <div class="entry-meta"><time datetime="2022-05-23T08:19:01.000Z">2022.05.23</time>
+        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/%E5%85%89%E6%A0%85%E5%8C%96%E6%B8%B2%E6%9F%93%E5%99%A8/">光栅化渲染器</a>
+        <span class="meta-pip"></span><span>第五篇</span>
+      </div>
+      <h2 class="entry-title">
+        <a href="/LycTechStack.github.io/2022/05/23/20220523-%E6%B8%B2%E6%9F%93%E5%99%A8-%E7%9B%B8%E6%9C%BA/">相机 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
+      </h2>
+      <p>上一节实现了纹理映射，但观察矩阵和投影矩阵目前还是在主函数中设定的，为此我们需要一个相机类来管理，同时方便之后一些算法的实现。</p>
+    </article>
+  
+    
+    <article class="entry">
+      <div class="entry-meta"><time datetime="2022-05-22T10:21:49.000Z">2022.05.22</time>
+        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/%E5%85%89%E6%A0%85%E5%8C%96%E6%B8%B2%E6%9F%93%E5%99%A8/">光栅化渲染器</a>
+        <span class="meta-pip"></span><span>第四篇</span>
+      </div>
+      <h2 class="entry-title">
+        <a href="/LycTechStack.github.io/2022/05/22/20220522-%E6%B8%B2%E6%9F%93%E5%99%A8-%E7%BA%B9%E7%90%86/">纹理 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
+      </h2>
+      <p>上一节中我们完成了三维物体的渲染，显示了一个立方体，这一节我们为立方体加上一个图片纹理变为一个木箱。</p>
+    </article>
+  
+    
+    <article class="entry">
+      <div class="entry-meta"><time datetime="2022-05-21T10:28:14.000Z">2022.05.21</time>
+        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/%E5%85%89%E6%A0%85%E5%8C%96%E6%B8%B2%E6%9F%93%E5%99%A8/">光栅化渲染器</a>
+        <span class="meta-pip"></span><span>第三篇</span>
+      </div>
+      <h2 class="entry-title">
+        <a href="/LycTechStack.github.io/2022/05/21/20220521-%E6%B8%B2%E6%9F%93%E5%99%A8-%E5%8F%98%E6%8D%A2%E4%B8%8E%E6%B7%B1%E5%BA%A6%E6%B5%8B%E8%AF%95/">变换与深度测试 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
+      </h2>
+      <p>上一节我们搭建了整个渲染器的框架，并实现了最简单的渲染二维图形。这一节我们开始渲染真正的三维物体，实现一个基本的渲染管线。</p>
+    </article>
   
     
     <article class="entry">
@@ -100,138 +196,11 @@
       <p>之前我们实现过一个光线追踪器，从这一节开始我们要实现一个运行在 CPU 上的简单的光栅化渲染器，并在实现过程中进一步理解渲染管线的流程和各种细节。首先从配置环境和熟悉 OpenGL 开始。</p>
     </article>
   
-    
-    <article class="entry">
-      <div class="entry-meta"><time datetime="2022-05-18T09:05:35.000Z">2022.05.18</time>
-        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/Real-Time-Rendering/">Real-Time Rendering</a>
-        
-      </div>
-      <h2 class="entry-title">
-        <a href="/LycTechStack.github.io/2022/05/18/20220518-RTR-%E6%B8%B2%E6%9F%93%E5%8A%A0%E9%80%9F%E6%8A%80%E6%9C%AF%E6%80%BB%E7%BB%93/">渲染加速技术总结 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
-      </h2>
-      <p>本篇对《Real-Time Rendering》一书中的渲染加速技术进行概括总结和扩展。主要内容包括：
-
-空间管理（BVH、BSP 树、八叉树、场景图）
-裁剪技术（背面裁剪、视锥裁剪、遮挡剔除、层次视锥裁...</p>
-    </article>
-  
-    
-    <article class="entry">
-      <div class="entry-meta"><time datetime="2022-05-18T07:32:47.000Z">2022.05.18</time>
-        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/Real-Time-Rendering/">Real-Time Rendering</a>
-        
-      </div>
-      <h2 class="entry-title">
-        <a href="/LycTechStack.github.io/2022/05/18/20220518-RTR-%E9%9D%9E%E7%9C%9F%E5%AE%9E%E6%84%9F%E6%B8%B2%E6%9F%93%E6%8A%80%E6%9C%AF%E6%80%BB%E7%BB%93/">非真实感渲染总结 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
-      </h2>
-      <p>本篇对《Real-Time Rendering》一书中的非真实感渲染技术进行概括总结和扩展。主要内容包括：
-
-非真实感渲染（NPR）的基本思想
-卡通渲染
-轮廓描边方法总结
-其他风格的 NPR 渲染技术</p>
-    </article>
-  
-    
-    <article class="entry">
-      <div class="entry-meta"><time datetime="2022-05-18T06:47:58.000Z">2022.05.18</time>
-        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/Real-Time-Rendering/">Real-Time Rendering</a>
-        
-      </div>
-      <h2 class="entry-title">
-        <a href="/LycTechStack.github.io/2022/05/18/20220518-RTR-%E5%9F%BA%E4%BA%8E%E5%9B%BE%E5%83%8F%E7%9A%84%E6%B8%B2%E6%9F%93%E6%8A%80%E6%9C%AF%E6%80%BB%E7%BB%93/">基于图像的渲染技术总结 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
-      </h2>
-      <p>本篇对《Real-Time Rendering》一书中基于图像的渲染技术进行概括总结和扩展。以综述形式为主，许多内容已经实现过或学习过，其他概念只需了解即可，主要内容包括：
-
-谱渲染 The Render...</p>
-    </article>
-  
-    
-    <article class="entry">
-      <div class="entry-meta"><time datetime="2022-05-18T05:47:51.000Z">2022.05.18</time>
-        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/Real-Time-Rendering/">Real-Time Rendering</a>
-        
-      </div>
-      <h2 class="entry-title">
-        <a href="/LycTechStack.github.io/2022/05/18/20220518-RTR-%E5%85%A8%E5%B1%80%E5%85%89%E7%85%A7%E6%80%BB%E7%BB%93/">全局光照总结 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
-      </h2>
-      <p>本篇对《Real-Time Rendering》一书中全局光照相关知识进行概括总结和扩展。主要内容包括：
-
-全局光照概述
-光线投射、光线追踪和路径追踪的区别
-环境光遮蔽</p>
-    </article>
-  
-    
-    <article class="entry">
-      <div class="entry-meta"><time datetime="2022-05-16T08:56:09.000Z">2022.05.16</time>
-        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/Real-Time-Rendering/">Real-Time Rendering</a>
-        
-      </div>
-      <h2 class="entry-title">
-        <a href="/LycTechStack.github.io/2022/05/16/20220516-RTR-%E5%BB%B6%E8%BF%9F%E6%B8%B2%E6%9F%93%E6%80%BB%E7%BB%93/">延迟渲染总结 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
-      </h2>
-      <p>本篇对《Real-Time Rendering》一书中延迟渲染相关知识进行概括总结和扩展。主要内容包括：
-
-延迟渲染的概念、G-buffer、延迟渲染的过程
-延迟渲染 vs 正向渲染、延迟渲染 vs Z-...</p>
-    </article>
-  
-    
-    <article class="entry">
-      <div class="entry-meta"><time datetime="2022-05-16T06:55:13.000Z">2022.05.16</time>
-        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/Real-Time-Rendering/">Real-Time Rendering</a>
-        
-      </div>
-      <h2 class="entry-title">
-        <a href="/LycTechStack.github.io/2022/05/16/20220516-RTR-BRDF%E6%80%BB%E7%BB%93/">BRDF总结 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
-      </h2>
-      <p>本篇对《Real-Time Rendering》一书中 BRDF 相关知识进行概括总结和扩展。主要内容包括：
-
-BRDF 前置知识：数学、辐射度量学
-BRDF 的定义、理解和性质
-BRDF 模型分类
-基于...</p>
-    </article>
-  
-    
-    <article class="entry">
-      <div class="entry-meta"><time datetime="2022-05-15T07:24:30.000Z">2022.05.15</time>
-        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/Real-Time-Rendering/">Real-Time Rendering</a>
-        
-      </div>
-      <h2 class="entry-title">
-        <a href="/LycTechStack.github.io/2022/05/15/20220515-RTR-%E7%A8%8B%E5%BA%8F%E5%99%AA%E5%A3%B0%E6%80%BB%E7%BB%93/">程序噪声总结 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
-      </h2>
-      <p>上一篇提到过，程序纹理基本上都是通过噪声纹理来实现的，不同的噪声纹理适合制作不同的效果，如云雾、水波、大理石、能量波等。这一节对常见的程序噪声算法进行总结，主要包括：
-
-Value Noise
-Gradi...</p>
-    </article>
-  
-    
-    <article class="entry">
-      <div class="entry-meta"><time datetime="2022-05-15T03:09:44.000Z">2022.05.15</time>
-        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/Real-Time-Rendering/">Real-Time Rendering</a>
-        
-      </div>
-      <h2 class="entry-title">
-        <a href="/LycTechStack.github.io/2022/05/15/20220515-RTR-%E7%BA%B9%E7%90%86%E6%80%BB%E7%BB%93/">纹理总结 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
-      </h2>
-      <p>本篇对《Real-Time Rendering》一书中纹理相关知识进行概括总结。主要内容包括：
-
-纹理管线（Texture Pipeline）
-
-纹理缓存（Texture Caching）
-
-纹理压缩（T...</p>
-    </article>
-  
 </div>
 
       
 <nav class="pagination" aria-label="分页导航">
-  <a class="extend prev" rel="prev" href="/LycTechStack.github.io/page/5/">‹ 上一页</a><a class="page-number" href="/LycTechStack.github.io/">1</a><span class="space">&hellip;</span><a class="page-number" href="/LycTechStack.github.io/page/5/">5</a><span class="page-number current">6</span><a class="page-number" href="/LycTechStack.github.io/page/7/">7</a><span class="space">&hellip;</span><a class="page-number" href="/LycTechStack.github.io/page/14/">14</a><a class="extend next" rel="next" href="/LycTechStack.github.io/page/7/">下一页 ›</a>
+  <a class="extend prev" rel="prev" href="/LycTechStack.github.io/page/5/">‹ 上一页</a><a class="page-number" href="/LycTechStack.github.io/">1</a><span class="space">&hellip;</span><a class="page-number" href="/LycTechStack.github.io/page/5/">5</a><span class="page-number current">6</span><a class="page-number" href="/LycTechStack.github.io/page/7/">7</a><span class="space">&hellip;</span><a class="page-number" href="/LycTechStack.github.io/page/15/">15</a><a class="extend next" rel="next" href="/LycTechStack.github.io/page/7/">下一页 ›</a>
 </nav>
 
 

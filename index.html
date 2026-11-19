@@ -19,7 +19,7 @@
 <meta name="twitter:card" content="summary">
   <link rel="canonical" href="https://lychen328.github.io/LycTechStack.github.io/">
   <link rel="icon" href="/LycTechStack.github.io/images/journal/mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/LycTechStack.github.io/css/journal.css?v=atlas3">
+  <link rel="stylesheet" href="/LycTechStack.github.io/css/journal.css?v=weather1">
   
   
 
@@ -29,7 +29,7 @@
 
 
   <script defer src="/LycTechStack.github.io/js/journal.js?v=ringworld"></script>
-  <script defer src="/LycTechStack.github.io/js/world-field.js?v=atlas"></script>
+  <script defer src="/LycTechStack.github.io/js/journal-weather.js"></script><script defer src="/LycTechStack.github.io/js/world-field.js?v=weather1"></script>
 <link rel="alternate" href="/LycTechStack.github.io/atom.xml" title="LycTechStack" type="application/atom+xml">
 </head>
 <body id="top">
@@ -71,15 +71,28 @@
     
 
 <section class="hero" aria-labelledby="hero-title">
-  <div class="world-stage">
+  <div class="world-stage" data-weather="rain">
     <div class="world-frame world-base"><div class="world-sheet">
       
-<picture>
-  <source media="(max-width: 600px)" sizes="100vw" srcset="/LycTechStack.github.io/images/journal/ringworld-portrait-540.webp 540w, /LycTechStack.github.io/images/journal/ringworld-portrait-900.webp 900w">
-  <img src="/LycTechStack.github.io/images/journal/ringworld-1440.webp"
-       srcset="/LycTechStack.github.io/images/journal/ringworld-1440.webp 1440w, /LycTechStack.github.io/images/journal/ringworld-2042.webp 2042w" sizes="100vw"
-       width="2042" height="770" fetchpriority="high" alt="从天文台俯瞰河谷与远城，一道明亮的环带横跨夜空。">
-</picture>
+
+  <picture class="weather-plate plate-rain">
+    <source media="(max-width: 600px)" srcset="/LycTechStack.github.io/images/journal/weather-rain-portrait.webp">
+    <img src="/LycTechStack.github.io/images/journal/weather-rain-wide.webp" width="1180" height="445"
+         fetchpriority="high" alt="环带下的天文台、河谷与远城。天气在雨雾、积雪和晴光间流转。">
+  </picture>
+
+  <picture class="weather-plate plate-snow">
+    <source media="(max-width: 600px)" srcset="/LycTechStack.github.io/images/journal/weather-snow-portrait.webp">
+    <img src="/LycTechStack.github.io/images/journal/weather-snow-wide.webp" width="1180" height="445"
+         fetchpriority="low" alt="">
+  </picture>
+
+  <picture class="weather-plate plate-clear">
+    <source media="(max-width: 600px)" srcset="/LycTechStack.github.io/images/journal/weather-clear-portrait.webp">
+    <img src="/LycTechStack.github.io/images/journal/weather-clear-wide.webp" width="1180" height="445"
+         fetchpriority="low" alt="">
+  </picture>
+
 
       <svg class="world-transit" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true" focusable="false">
         <g class="transit-wide">
@@ -93,13 +106,27 @@
       </svg>
     </div></div>
     <div class="world-wash" aria-hidden="true"></div>
+    <canvas class="weather-field" aria-hidden="true"></canvas>
     <div class="world-frame world-foreground" aria-hidden="true"><div class="world-sheet">
-<picture>
-  <source media="(max-width: 600px)" sizes="100vw" srcset="/LycTechStack.github.io/images/journal/ringworld-portrait-540.webp 540w, /LycTechStack.github.io/images/journal/ringworld-portrait-900.webp 900w">
-  <img src="/LycTechStack.github.io/images/journal/ringworld-1440.webp"
-       srcset="/LycTechStack.github.io/images/journal/ringworld-1440.webp 1440w, /LycTechStack.github.io/images/journal/ringworld-2042.webp 2042w" sizes="100vw"
-       width="2042" height="770" alt="">
-</picture>
+
+  <picture class="weather-plate plate-rain">
+    <source media="(max-width: 600px)" srcset="/LycTechStack.github.io/images/journal/weather-rain-portrait.webp">
+    <img src="/LycTechStack.github.io/images/journal/weather-rain-wide.webp" width="1180" height="445"
+         fetchpriority="low" alt="">
+  </picture>
+
+  <picture class="weather-plate plate-snow">
+    <source media="(max-width: 600px)" srcset="/LycTechStack.github.io/images/journal/weather-snow-portrait.webp">
+    <img src="/LycTechStack.github.io/images/journal/weather-snow-wide.webp" width="1180" height="445"
+         fetchpriority="low" alt="">
+  </picture>
+
+  <picture class="weather-plate plate-clear">
+    <source media="(max-width: 600px)" srcset="/LycTechStack.github.io/images/journal/weather-clear-portrait.webp">
+    <img src="/LycTechStack.github.io/images/journal/weather-clear-wide.webp" width="1180" height="445"
+         fetchpriority="low" alt="">
+  </picture>
+
 </div></div>
     <div class="wrap hero-copy">
       <p class="kicker" lang="en">GAME ENGINE JOURNAL</p>
@@ -167,10 +194,24 @@
       
     </div>
   
+    <div class="map-region region-environment">
+      <svg class="atlas-tracks" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        
+  <path class="track-wide main-track" d="M 47 68 C 37.5 68, 37.5 83, 28 83"></path><path class="track-portrait main-track" d="M 33 73 C 21 73, 21 85, 9 85"></path>
+
+        
+      </svg>
+      <div class="map-stop" style="--map-x:28%;--map-y:83%;--portrait-x:9%;--portrait-y:85%">
+        <a class="map-hub" href="/LycTechStack.github.io/categories/%E7%8E%AF%E5%A2%83%E6%B8%B2%E6%9F%93/" aria-label="环境渲染分类" title="环境渲染 · 8 篇笔记"><i class="map-diamond" aria-hidden="true"></i><span>环境渲染</span></a>
+        
+      </div>
+      
+    </div>
+  
     <div class="map-region region-runtime">
       <svg class="atlas-tracks" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
         
-  <path class="track-wide main-track" d="M 47 68 C 68.5 68, 68.5 69, 90 69"></path><path class="track-portrait main-track" d="M 33 73 C 61.5 73, 61.5 84, 90 84"></path>
+  <path class="track-wide main-track" d="M 28 83 C 59 83, 59 69, 90 69"></path><path class="track-portrait main-track" d="M 9 85 C 49.5 85, 49.5 84, 90 84"></path>
 
         
       </svg>
@@ -208,6 +249,7 @@
   <strong>场景地图</strong><span><i class="map-diamond" aria-hidden="true"></i>分类</span><span><i class="map-dot" aria-hidden="true"></i>单篇笔记</span>
 </div>
 
+    <button class="weather-next" type="button" aria-label="当前雨天，切换到雪天" hidden><i aria-hidden="true"></i><span>雨天</span><svg class="icon" width="13" height="13" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#chevron"/></svg></button>
   </div>
   
 <nav class="atlas-index" aria-label="场景地图分类索引">
@@ -234,6 +276,13 @@
 
       </div>
     
+      <div class="atlas-column region-environment">
+        <h2><i class="map-diamond" aria-hidden="true"></i>环境渲染</h2>
+        
+<ul><li><a href="/LycTechStack.github.io/categories/%E7%8E%AF%E5%A2%83%E6%B8%B2%E6%9F%93/">环境渲染</a></li></ul>
+
+      </div>
+    
       <div class="atlas-column region-runtime">
         <h2><i class="map-diamond" aria-hidden="true"></i>语言与运行时</h2>
         
@@ -254,9 +303,9 @@
 
   <div class="hero-foot"><div class="wrap hero-foot-inner">
     <div class="journal-counts">
-      <a href="/LycTechStack.github.io/archives/"><strong>135</strong> 篇笔记</a><i></i>
-      <a href="/LycTechStack.github.io/categories/"><strong>17</strong> 个分类</a><i></i>
-      <a href="/LycTechStack.github.io/tags/"><strong>19</strong> 个标签</a>
+      <a href="/LycTechStack.github.io/archives/"><strong>143</strong> 篇笔记</a><i></i>
+      <a href="/LycTechStack.github.io/categories/"><strong>18</strong> 个分类</a><i></i>
+      <a href="/LycTechStack.github.io/tags/"><strong>23</strong> 个标签</a>
     </div>
     <span class="byline">JOURNAL BY <b>LYC</b></span>
   </div></div>
@@ -301,6 +350,102 @@
   
     
     <article class="entry">
+      <div class="entry-meta"><time datetime="2026-11-19T02:00:08.000Z">2026.11.19</time>
+        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/%E7%8E%AF%E5%A2%83%E6%B8%B2%E6%9F%93/">环境渲染</a>
+        <span class="meta-pip"></span><span>第一篇</span>
+      </div>
+      <h3 class="entry-title">
+        <a href="/LycTechStack.github.io/2026/11/19/20261119-env-01-precipitation/">雨雪天气的 GPU 粒子与闪电 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
+      </h3>
+      <p>站在屋檐下看雨，最近的雨丝能划过半个窗格，远处山坡上却只能看见一层雨幕。转过身，屋内应当干燥，窗外的雨还应当落在原来的位置。这三个观察分别决定了粒子的屏幕尺寸、降水区域的坐标系和碰撞数据。本篇先把空中的雨...</p>
+    </article>
+  
+    
+    <article class="entry">
+      <div class="entry-meta"><time datetime="2026-11-19T02:00:07.000Z">2026.11.19</time>
+        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/%E7%8E%AF%E5%A2%83%E6%B8%B2%E6%9F%93/">环境渲染</a>
+        <span class="meta-pip"></span><span>第二篇</span>
+      </div>
+      <h3 class="entry-title">
+        <a href="/LycTechStack.github.io/2026/11/19/20261119-env-02-surfaces/">积雪、湿润表面、水滴与涟漪 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
+      </h3>
+      <p>雨停以后，铁栏杆上先留下水珠，石板仍然潮湿，低洼处的水面却能映出整扇窗。一个全局雨量参数只能说明此刻有没有水落下。要得到这三个不同的时间尺度，需要让表面记住接收了多少水、多少雪，以及它们能流到哪里。</p>
+    </article>
+  
+    
+    <article class="entry">
+      <div class="entry-meta"><time datetime="2026-11-19T02:00:06.000Z">2026.11.19</time>
+        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/%E7%8E%AF%E5%A2%83%E6%B8%B2%E6%9F%93/">环境渲染</a>
+        <span class="meta-pip"></span><span>第三篇</span>
+      </div>
+      <h3 class="entry-title">
+        <a href="/LycTechStack.github.io/2026/11/19/20261119-env-03-clouds/">体积云的密度、光照与时域重建 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
+      </h3>
+      <p>从地面看，云底通常处在相近高度，但云顶、翻卷的边缘和背光处的亮边并不平整。如果只平移一张云图，镜头上升后很快会暴露它的平面形状。这一篇从射线穿过一层云出发，讨论怎样在有限的采样次数里同时保住体积、风向和明...</p>
+    </article>
+  
+    
+    <article class="entry">
+      <div class="entry-meta"><time datetime="2026-11-19T02:00:05.000Z">2026.11.19</time>
+        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/%E7%8E%AF%E5%A2%83%E6%B8%B2%E6%9F%93/">环境渲染</a>
+        <span class="meta-pip"></span><span>第四篇</span>
+      </div>
+      <h3 class="entry-title">
+        <a href="/LycTechStack.github.io/2026/11/19/20261119-env-04-fog/">视锥体素与局部体积雾 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
+      </h3>
+      <p>把山谷的雾按距离混进画面，远山很快就有了层次。把一盏灯搬进桥洞，灯应该只照亮桥下的一小团雾，桥墩还应该在雾中投影。这时每个像素只有一个雾因子就不够了，需要在视线的不同深度分别保存介质与照明。</p>
+    </article>
+  
+    
+    <article class="entry">
+      <div class="entry-meta"><time datetime="2026-11-19T02:00:04.000Z">2026.11.19</time>
+        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/%E7%8E%AF%E5%A2%83%E6%B8%B2%E6%9F%93/">环境渲染</a>
+        <span class="meta-pip"></span><span>第五篇</span>
+      </div>
+      <h3 class="entry-title">
+        <a href="/LycTechStack.github.io/2026/11/19/20261119-env-05-atmosphere/">大气散射、空气透视与体积光 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
+      </h3>
+      <p>日落时，太阳附近的天空发亮，背光的山脊却逐渐失去对比度。两者来自同一条光路上的散射和吸收。接下来先区分观察方向对天空颜色的影响，再把天空、远山和穿过树冠的光束放进同一个合成过程。</p>
+    </article>
+  
+    
+    <article class="entry">
+      <div class="entry-meta"><time datetime="2026-11-19T02:00:03.000Z">2026.11.19</time>
+        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/%E7%8E%AF%E5%A2%83%E6%B8%B2%E6%9F%93/">环境渲染</a>
+        <span class="meta-pip"></span><span>第六篇</span>
+      </div>
+      <h3 class="entry-title">
+        <a href="/LycTechStack.github.io/2026/11/19/20261119-env-06-ocean/">水面、近岸与频谱海洋 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
+      </h3>
+      <p>湖边的细碎波纹让高光破碎，却几乎不改变岸线；海上的长涌浪能把整条船托起来。先把这两个尺度分开，就可以分别决定哪些波必须参与位移与浮力，哪些只需进入法线和粗糙度。</p>
+    </article>
+  
+    
+    <article class="entry">
+      <div class="entry-meta"><time datetime="2026-11-19T02:00:02.000Z">2026.11.19</time>
+        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/%E7%8E%AF%E5%A2%83%E6%B8%B2%E6%9F%93/">环境渲染</a>
+        <span class="meta-pip"></span><span>第七篇</span>
+      </div>
+      <h3 class="entry-title">
+        <a href="/LycTechStack.github.io/2026/11/19/20261119-env-07-underwater/">穿越水线、海底焦散与水下成像 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
+      </h3>
+      <p>把相机慢慢压过一个浪尖，有些像素已经在看水下，有些还在看远处的天空。只用相机高度切换全屏蓝色滤镜，画面会在一帧内整体变色。应当先找出每条视线上真正处在水中的那一段，再决定这段水吸收和散射多少光。</p>
+    </article>
+  
+    
+    <article class="entry">
+      <div class="entry-meta"><time datetime="2026-11-19T02:00:01.000Z">2026.11.19</time>
+        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/%E7%8E%AF%E5%A2%83%E6%B8%B2%E6%9F%93/">环境渲染</a>
+        <span class="meta-pip"></span><span>第八篇</span>
+      </div>
+      <h3 class="entry-title">
+        <a href="/LycTechStack.github.io/2026/11/19/20261119-env-08-interaction/">雪沙足迹、水面尾流与雾气交互 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
+      </h3>
+      <p>角色走过雪地、涉过浅水，再从雾中穿出。三处都收到脚掌的位置、速度和半径。雪留下凹痕，水把扰动传播出去，雾被气流带走。共用交互事件与空间管理，再为每种介质选择不同的更新方程，可以把这些效果接到同一套游戏逻辑上。</p>
+    </article>
+  
+    
+    <article class="entry">
       <div class="entry-meta"><time datetime="2023-03-16T08:56:42.000Z">2023.03.16</time>
         <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/Lua/">Lua</a>
         
@@ -333,110 +478,11 @@ Lua 调用 C...</p>
       <p>本篇总结了《C和C++安全编码》中并发和多线程相关的内容。</p>
     </article>
   
-    
-    <article class="entry">
-      <div class="entry-meta"><time datetime="2023-03-16T04:21:07.000Z">2023.03.16</time>
-        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/C%E5%92%8CC-%E5%AE%89%E5%85%A8%E7%BC%96%E7%A0%81/">C和C++安全编码</a>
-        
-      </div>
-      <h3 class="entry-title">
-        <a href="/LycTechStack.github.io/2023/03/16/20230316-%E5%AE%89%E5%85%A8%E7%BC%96%E7%A0%81-%E6%95%B4%E6%95%B0%E5%AE%89%E5%85%A8/">整数安全 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
-      </h3>
-      <p>本篇总结了《C和C++安全编码》中整数相关的内容。</p>
-    </article>
-  
-    
-    <article class="entry">
-      <div class="entry-meta"><time datetime="2023-03-16T04:20:57.000Z">2023.03.16</time>
-        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/C%E5%92%8CC-%E5%AE%89%E5%85%A8%E7%BC%96%E7%A0%81/">C和C++安全编码</a>
-        
-      </div>
-      <h3 class="entry-title">
-        <a href="/LycTechStack.github.io/2023/03/16/20230316-%E5%AE%89%E5%85%A8%E7%BC%96%E7%A0%81-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/">内存管理 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
-      </h3>
-      <p>本章总结《C和C++安全编码》中内存管理相关的内容。</p>
-    </article>
-  
-    
-    <article class="entry">
-      <div class="entry-meta"><time datetime="2023-03-16T04:20:49.000Z">2023.03.16</time>
-        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/C%E5%92%8CC-%E5%AE%89%E5%85%A8%E7%BC%96%E7%A0%81/">C和C++安全编码</a>
-        
-      </div>
-      <h3 class="entry-title">
-        <a href="/LycTechStack.github.io/2023/03/16/20230316-%E5%AE%89%E5%85%A8%E7%BC%96%E7%A0%81-%E5%AD%97%E7%AC%A6%E4%B8%B2/">字符串 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
-      </h3>
-      <p>本篇总结了《C和C++安全编码》中字符串相关的内容。</p>
-    </article>
-  
-    
-    <article class="entry">
-      <div class="entry-meta"><time datetime="2023-03-09T03:54:36.000Z">2023.03.09</time>
-        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/">设计模式</a>
-        
-      </div>
-      <h3 class="entry-title">
-        <a href="/LycTechStack.github.io/2023/03/09/20230309-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E5%85%B6%E4%BB%96%E5%B8%B8%E7%94%A8%E6%A8%A1%E5%BC%8F%E5%8F%8A%E6%80%BB%E7%BB%93/">其他常用模式及总结 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
-      </h3>
-      <p>本篇介绍了其他常用设计模式并对所有设计模式及相关设计原则进行了总结。</p>
-    </article>
-  
-    
-    <article class="entry">
-      <div class="entry-meta"><time datetime="2023-03-08T06:26:16.000Z">2023.03.08</time>
-        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/">设计模式</a>
-        
-      </div>
-      <h3 class="entry-title">
-        <a href="/LycTechStack.github.io/2023/03/08/20230308-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E5%A4%8D%E5%90%88%E6%A8%A1%E5%BC%8F/">复合模式 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
-      </h3>
-      <p>本篇介绍了由多种设计模式组合而成的复合设计模式，其中最经典的三个模式分别为 MVC、MVP 和 MVVM 模式。</p>
-    </article>
-  
-    
-    <article class="entry">
-      <div class="entry-meta"><time datetime="2023-03-08T05:43:55.000Z">2023.03.08</time>
-        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/">设计模式</a>
-        
-      </div>
-      <h3 class="entry-title">
-        <a href="/LycTechStack.github.io/2023/03/08/20230308-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F/">代理模式 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
-      </h3>
-      <p>本篇介绍了代理模式及相关的面向对象设计原则。代理模式为其他对象提供一种替身或占位符（代理）以控制对这个对象的访问。</p>
-    </article>
-  
-    
-    <article class="entry">
-      <div class="entry-meta"><time datetime="2023-03-07T05:57:54.000Z">2023.03.07</time>
-        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/">设计模式</a>
-        
-      </div>
-      <h3 class="entry-title">
-        <a href="/LycTechStack.github.io/2023/03/07/20230307-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E7%8A%B6%E6%80%81%E6%A8%A1%E5%BC%8F/">状态模式 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
-      </h3>
-      <p>本篇介绍了状态模式及相关的面向对象设计原则。状态模式允许对象在内部状态改变时改变它的行为，从而使对象看起来像是修改了它的行为。</p>
-    </article>
-  
-    
-    <article class="entry">
-      <div class="entry-meta"><time datetime="2023-03-07T04:06:03.000Z">2023.03.07</time>
-        <span class="meta-pip"></span><a href="/LycTechStack.github.io/categories/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/">设计模式</a>
-        
-      </div>
-      <h3 class="entry-title">
-        <a href="/LycTechStack.github.io/2023/03/07/20230307-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E8%BF%AD%E4%BB%A3%E5%99%A8%E6%A8%A1%E5%BC%8F%E5%92%8C%E7%BB%84%E5%90%88%E6%A8%A1%E5%BC%8F/">迭代器模式和组合模式 <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></a>
-      </h3>
-      <p>本篇介绍了迭代器模式和组合模式及相关的面向对象设计原则。这两种模式都是面向数据结构的设计模式。
-
-迭代器模式（Iterator）提供一种方法顺序访问一个聚合对象中的各个元素，而又不暴露其内部的表示。
-组合...</p>
-    </article>
-  
 </div>
 
       
 <nav class="pagination" aria-label="分页导航">
-  <span class="page-number current">1</span><a class="page-number" href="/LycTechStack.github.io/page/2/">2</a><span class="space">&hellip;</span><a class="page-number" href="/LycTechStack.github.io/page/14/">14</a><a class="extend next" rel="next" href="/LycTechStack.github.io/page/2/">下一页 ›</a>
+  <span class="page-number current">1</span><a class="page-number" href="/LycTechStack.github.io/page/2/">2</a><span class="space">&hellip;</span><a class="page-number" href="/LycTechStack.github.io/page/15/">15</a><a class="extend next" rel="next" href="/LycTechStack.github.io/page/2/">下一页 ›</a>
 </nav>
 
 

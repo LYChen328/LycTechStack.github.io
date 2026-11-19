@@ -1,0 +1,221 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a1017">
+  <meta name="generator" content="Hexo 5.4.1">
+  <title>【环境渲染】（四）视锥体素与局部体积雾 | LycTechStack</title>
+  <script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"lychen328.github.io","root":"/LycTechStack.github.io/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":true,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":true,"nav":null,"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":5,"unescape":false,"preload":false},"motion":{"enable":false,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+  <meta name="description" content="把山谷的雾按距离混进画面，远山很快就有了层次。把一盏灯搬进桥洞，灯应该只照亮桥下的一小团雾，桥墩还应该在雾中投影。这时每个像素只有一个雾因子就不够了，需要在视线的不同深度分别保存介质与照明。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【环境渲染】（四）视锥体素与局部体积雾">
+<meta property="og:url" content="https://lychen328.github.io/LycTechStack.github.io/2026/11/19/20261119-env-04-fog/index.html">
+<meta property="og:site_name" content="LycTechStack">
+<meta property="og:description" content="把山谷的雾按距离混进画面，远山很快就有了层次。把一盏灯搬进桥洞，灯应该只照亮桥下的一小团雾，桥墩还应该在雾中投影。这时每个像素只有一个雾因子就不够了，需要在视线的不同深度分别保存介质与照明。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://lychen328.github.io/LycTechStack.github.io/2026/11/19/20261119-env-04-fog/froxel-slices.png">
+<meta property="article:published_time" content="2026-11-19T02:00:05.000Z">
+<meta property="article:modified_time" content="2026-11-19T12:29:44.219Z">
+<meta property="article:author" content="Lyc">
+<meta property="article:tag" content="游戏引擎">
+<meta property="article:tag" content="实时渲染">
+<meta property="article:tag" content="体积渲染">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://lychen328.github.io/LycTechStack.github.io/2026/11/19/20261119-env-04-fog/froxel-slices.png">
+  <link rel="canonical" href="https://lychen328.github.io/LycTechStack.github.io/2026/11/19/20261119-env-04-fog/">
+  <link rel="icon" href="/LycTechStack.github.io/images/journal/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/LycTechStack.github.io/css/journal.css?v=weather1">
+  
+  
+
+
+
+
+
+
+  <script defer src="/LycTechStack.github.io/js/journal.js?v=ringworld"></script>
+  <script defer src="/LycTechStack.github.io/js/world-field.js"></script>
+<link rel="alternate" href="/LycTechStack.github.io/atom.xml" title="LycTechStack" type="application/atom+xml">
+</head>
+<body id="top" class="reading-view">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="world-grid" aria-hidden="true"></div>
+  <canvas class="star-field" aria-hidden="true"></canvas>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="wordmark" href="/LycTechStack.github.io/" rel="home"><img src="/LycTechStack.github.io/images/journal/mark.svg" alt="" width="33" height="33">LycTechStack</a>
+      <nav class="primary-nav" id="primary-nav" aria-label="主导航">
+        
+          
+          <a href="/LycTechStack.github.io/">首页</a>
+        
+          
+          <a href="/LycTechStack.github.io/archives/">归档</a>
+        
+          
+          <a href="/LycTechStack.github.io/categories/">分类</a>
+        
+          
+          <a href="/LycTechStack.github.io/tags/">标签</a>
+        
+          
+          <a href="/LycTechStack.github.io/about/">关于</a>
+        
+      </nav>
+      <div class="header-tools">
+        <button class="search-trigger js-only" type="button" aria-label="搜索文章" aria-haspopup="dialog"><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#search"/></svg><span>搜索</span><kbd>/</kbd></button>
+        <button class="motion-toggle js-only" type="button" aria-label="暂停背景动效" title="暂停背景动效"><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#pause"/></svg><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#play"/></svg></button>
+        <a class="github-link" href="https://github.com/LYChen328/" aria-label="Lyc 的 GitHub" target="_blank" rel="noopener"><svg class="icon" width="19" height="19" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#github"/></svg></a>
+        <button class="menu-toggle js-only" type="button" aria-label="展开导航" aria-expanded="false" aria-controls="primary-nav"><svg class="icon" width="22" height="22" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#menu"/></svg></button>
+      </div>
+    </div>
+    <div class="reading-progress" aria-hidden="true"></div>
+  </header>
+  <main id="main" tabindex="-1">
+<div class="wrap inner-page post-page">
+  <div class="breadcrumbs"><a href="/LycTechStack.github.io/">首页</a><span>/</span><a href="/LycTechStack.github.io/archives/">归档</a>
+    <span>/</span><a href="/LycTechStack.github.io/categories/%E7%8E%AF%E5%A2%83%E6%B8%B2%E6%9F%93/">环境渲染</a>
+  </div>
+  <article itemscope itemtype="https://schema.org/BlogPosting">
+    <header class="article-heading">
+      
+      <p class="kicker article-series">环境渲染<span>第四篇</span></p>
+      <h1 class="page-title" itemprop="headline">视锥体素与局部体积雾</h1>
+      <div class="article-meta"><span itemprop="author">Lyc</span><i></i>
+        <time datetime="2026-11-19T02:00:05.000Z" itemprop="datePublished">2026-11-19</time>
+        <i></i><span>1.6k 字</span>
+        <i></i><span><svg class="icon" width="14" height="14" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#clock"/></svg>约 1 分钟</span>
+        <span id="busuanzi_container_page_pv" style="display:none"><span id="busuanzi_value_page_pv"></span> 次阅读</span>
+      </div>
+    </header>
+    
+    <div class="article-layout">
+      <aside class="toc-panel"><details open><summary><svg class="icon" width="17" height="17" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#toc"/></svg>文章目录 <svg class="icon" width="15" height="15" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#chevron"/></svg></summary><nav aria-label="文章目录"><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E4%BB%8E%E8%A7%A3%E6%9E%90%E9%AB%98%E5%BA%A6%E9%9B%BE%E5%88%B0-Froxel"><span class="toc-text">1 从解析高度雾到 Froxel</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E5%88%86%E5%BC%80%E5%86%99%E5%85%A5%E4%BB%8B%E8%B4%A8%E3%80%81%E5%85%89%E7%85%A7%EF%BC%8C%E5%86%8D%E6%B2%BF%E5%88%97%E7%A7%AF%E5%88%86"><span class="toc-text">2 分开写入介质、光照，再沿列积分</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E4%B8%BA%E4%BB%80%E4%B9%88%E7%81%AF%E5%8A%A8%E4%BA%86%EF%BC%8C%E9%9B%BE%E9%87%8C%E8%BF%98%E6%9C%89%E6%AE%8B%E5%BD%B1"><span class="toc-text">3 为什么灯动了，雾里还有残影</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-%E7%A7%BB%E5%8A%A8%E7%AB%AF%E4%BB%8E%E7%94%BB%E9%9D%A2%E4%B8%AD%E5%88%92%E5%87%BA%E7%9C%9F%E6%AD%A3%E9%9C%80%E8%A6%81%E4%BD%93%E7%A7%AF%E7%9A%84%E9%83%A8%E5%88%86"><span class="toc-text">4 移动端从画面中划出真正需要体积的部分</span></a></li></ol></nav></details></aside>
+      <div class="article-column">
+        <div class="prose post-body" itemprop="articleBody">
+          
+          <p>把山谷的雾按距离混进画面，远山很快就有了层次。把一盏灯搬进桥洞，灯应该只照亮桥下的一小团雾，桥墩还应该在雾中投影。这时每个像素只有一个雾因子就不够了，需要在视线的不同深度分别保存介质与照明。</p>
+<span id="more"></span>
+
+<h3 id="1-从解析高度雾到-Froxel"><a href="#1-从解析高度雾到-Froxel" class="headerlink" title="1 从解析高度雾到 Froxel"></a>1 从解析高度雾到 Froxel</h3><p>如果消光系数沿高度按 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>σ</mi><mo stretchy="false">(</mo><mi>y</mi><mo stretchy="false">)</mo><mo>=</mo><msub><mi>σ</mi><mn>0</mn></msub><msup><mi>e</mi><mrow><mo>−</mo><mi>k</mi><mo stretchy="false">(</mo><mi>y</mi><mo>−</mo><msub><mi>y</mi><mn>0</mn></msub><mo stretchy="false">)</mo></mrow></msup></mrow><annotation encoding="application/x-tex">\sigma(y)=\sigma_0 e^{-k(y-y_0)}</annotation></semantics></math></span> 变化，长度为 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>d</mi></mrow><annotation encoding="application/x-tex">d</annotation></semantics></math></span> 的视线，其透射率是 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>e</mi><mrow><mo>−</mo><msubsup><mo>∫</mo><mn>0</mn><mi>d</mi></msubsup><mi>σ</mi><mo stretchy="false">(</mo><mi>y</mi><mo stretchy="false">(</mo><mi>s</mi><mo stretchy="false">)</mo><mo stretchy="false">)</mo><mi>d</mi><mi>s</mi></mrow></msup></mrow><annotation encoding="application/x-tex">e^{-\int_0^d \sigma(y(s))ds}</annotation></semantics></math></span>。当视线水平时，整段密度相同，积分退化为 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>σ</mi><mo stretchy="false">(</mo><msub><mi>y</mi><mrow><mi mathvariant="normal">e</mi><mi mathvariant="normal">y</mi><mi mathvariant="normal">e</mi></mrow></msub><mo stretchy="false">)</mo><mi>d</mi></mrow><annotation encoding="application/x-tex">\sigma(y_\mathrm{eye})d</annotation></semantics></math></span>。计算非水平射线时要在垂直方向分量接近零处切换到这个极限，避免除零。这条廉价路径很适合远山。</p>
+<p>局部光柱需要离散体积。将屏幕分块，再沿视空间深度分层，形成 Froxel，也就是随视锥展开的体素。对数分层可写为 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>z</mi><mi>i</mi></msub><mo>=</mo><mi>n</mi><mo stretchy="false">(</mo><mi>f</mi><mi mathvariant="normal">/</mi><mi>n</mi><msup><mo stretchy="false">)</mo><mrow><mi>i</mi><mi mathvariant="normal">/</mi><mi>N</mi></mrow></msup></mrow><annotation encoding="application/x-tex">z_i=n(f/n)^{i/N}</annotation></semantics></math></span>，近处体素较细，远处覆盖范围较大。积分使用的是沿当前射线的实际长度。若用视空间 Z 分层，应将层的 Z 厚度除以视线与相机前向的夹角余弦，避免广角画面边缘的雾异常变薄。</p>
+<p><a href="froxel-slices.png"><img src="/LycTechStack.github.io/2026/11/19/20261119-env-04-fog/froxel-slices.png" alt="相同的深度切片数量下，对数分层把更多切片分配到靠近观察者的区域" loading="lazy"></a></p>
+<h3 id="2-分开写入介质、光照，再沿列积分"><a href="#2-分开写入介质、光照，再沿列积分" class="headerlink" title="2 分开写入介质、光照，再沿列积分"></a>2 分开写入介质、光照，再沿列积分</h3><p>先把全局高度密度与局部盒体、球体或三维密度纹理注入网格。重叠介质的消光系数和散射系数分别相加，以散射系数为权重混合介质色或相函数参数。然后在体素中心计算入射照度，用光源列表选出相交灯光，乘相函数与阴影可见性。固定的太阳可共用级联阴影；局部灯只给确实需要投影的那几盏查询阴影。</p>
+<p>从近到远扫描每一列，保存到当前深度的累计散射 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>L</mi></mrow><annotation encoding="application/x-tex">L</annotation></semantics></math></span> 与累计透射率 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>T</mi></mrow><annotation encoding="application/x-tex">T</annotation></semantics></math></span>。若源项 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>j</mi></mrow><annotation encoding="application/x-tex">j</annotation></semantics></math></span> 单位为每米辐亮度，一段均匀介质的更新为</p>
+<span class="display-equation"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msup><mi>L</mi><mo mathvariant="normal" lspace="0em" rspace="0em">′</mo></msup><mo>=</mo><mi>L</mi><mo>+</mo><mi>T</mi><mi>j</mi><mtext> </mtext><mfrac><mrow><mn>1</mn><mo>−</mo><msup><mi>e</mi><mrow><mo>−</mo><msub><mi>σ</mi><mi>t</mi></msub><mi mathvariant="normal">Δ</mi><mi>s</mi></mrow></msup></mrow><msub><mi>σ</mi><mi>t</mi></msub></mfrac><mo separator="true">,</mo><mspace width="2em"/><msup><mi>T</mi><mo mathvariant="normal" lspace="0em" rspace="0em">′</mo></msup><mo>=</mo><mi>T</mi><msup><mi>e</mi><mrow><mo>−</mo><msub><mi>σ</mi><mi>t</mi></msub><mi mathvariant="normal">Δ</mi><mi>s</mi></mrow></msup><mi mathvariant="normal">.</mi></mrow><annotation encoding="application/x-tex">L&#x27; = L + T j\,\frac{1-e^{-\sigma_t\Delta s}}{\sigma_t},\qquad T&#x27;=T e^{-\sigma_t\Delta s}.</annotation></semantics></math></span></span>
+
+<p>当 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>σ</mi><mi>t</mi></msub></mrow><annotation encoding="application/x-tex">\sigma_t</annotation></semantics></math></span> 很小时，分式取极限 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Δ</mi><mi>s</mi></mrow><annotation encoding="application/x-tex">\Delta s</annotation></semantics></math></span>。最后按物体深度查表，用 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>L</mi><mo>+</mo><mi>T</mi><msub><mi>C</mi><mrow><mi mathvariant="normal">s</mi><mi mathvariant="normal">u</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">f</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">c</mi><mi mathvariant="normal">e</mi></mrow></msub></mrow><annotation encoding="application/x-tex">L+T C_\mathrm{surface}</annotation></semantics></math></span> 合成。透明粒子要取自身深度的雾，上方的雾层不能按后面那堵墙的距离计算。低分辨率体积网格、局部密度和受光的组合可对照两种生产实现。<a target="_blank" rel="noopener" href="https://bartwronski.com/wp-content/uploads/2014/03/ac4_gdc_notes.pdf">《刺客信条 IV》的体积效果</a> · <a target="_blank" rel="noopener" href="https://dev.epicgames.com/documentation/en-us/unreal-engine/volumetric-fog-in-unreal-engine">Unreal Engine Volumetric Fog</a></p>
+<h3 id="3-为什么灯动了，雾里还有残影"><a href="#3-为什么灯动了，雾里还有残影" class="headerlink" title="3 为什么灯动了，雾里还有残影"></a>3 为什么灯动了，雾里还有残影</h3><p>抖动体素采样点再做历史重投影，静态桥洞会稳定很多。但新开关的灯和高速移动的角色没有可靠的上一帧光照。用上一帧相机矩阵重建历史坐标，越界或相机切换时清掉历史；光源变化的局部范围降低权重。窄光束跨越粗切片时还会出现分层，提升历史权重只会把条纹变成拖尾。先检查雾的有效远端，收紧远端能把有限的 Z 切片还给近景。</p>
+<p>桥洞边缘漏光时，分别输出密度、可见性和最终透射率三张图。密度已经穿过墙壁，应修正局部体积边界；只有可见性漏光，才去检查阴影偏移或灯光列表。这样不会靠加厚雾来遮住错误。</p>
+<h3 id="4-移动端从画面中划出真正需要体积的部分"><a href="#4-移动端从画面中划出真正需要体积的部分" class="headerlink" title="4 移动端从画面中划出真正需要体积的部分"></a>4 移动端从画面中划出真正需要体积的部分</h3><p>近处需要被车灯或太阳照亮的雾保留粗 Froxel，远处接解析高度雾，两段按透射率串联。举一个分配例子，1280×720 画面按 16×16 像素分块、32 个深度切片，共 115,200 个体素，一张 RGBA16F 纹理约为 0.88 MiB；再加一张历史纹理就要再付一次存储与读取。这只计算理想纹理大小，实际分配还受格式支持与对齐影响。</p>
+<p>低档机可以直接对少量局部雾体做射线与体积求交，在半分辨率解析积分太阳或单个重点灯，把动态体积阴影改为低频遮罩。比较这条路径与粗网格时，要同时观察雾体重叠的像素数和网格的空体素比例。雾散尽时跳过局部体积 Pass；雾升起时已有的高度雾仍可平滑过渡。<a target="_blank" rel="noopener" href="https://dev.epicgames.com/documentation/en-us/unreal-engine/local-fog-volumes-in-unreal-engine">Local Fog Volumes</a></p>
+<p>远距离天空的光从哪里来，见 <a href="/LycTechStack.github.io/2026/11/19/20261119-env-05-atmosphere/" title="大气散射与体积光">大气散射与体积光</a>。</p>
+
+        </div>
+        <div class="tag-cloud post-tags"><a href="/LycTechStack.github.io/tags/%E6%B8%B8%E6%88%8F%E5%BC%95%E6%93%8E/" rel="tag"><span>#</span> 游戏引擎</a><a href="/LycTechStack.github.io/tags/%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93/" rel="tag"><span>#</span> 实时渲染</a><a href="/LycTechStack.github.io/tags/%E4%BD%93%E7%A7%AF%E6%B8%B2%E6%9F%93/" rel="tag"><span>#</span> 体积渲染</a></div>
+        
+        <aside class="credit"><strong>文章版权</strong><p>本文收录于 <a href="/LycTechStack.github.io/">LycTechStack</a>，仅供学习与参考。转载时请注明作者和出处。部分资料来自网络，如有侵权请联系博主。</p></aside>
+        
+  <div class="popular-posts-header">相关文章</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/05/30/20220530-GAMES202-实时阴影/" rel="bookmark">【高质量实时渲染】实时阴影</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/06/02/20220602-GAMES202-实时环境光照/" rel="bookmark">【高质量实时渲染】实时环境光照</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/06/08/20220608-GAMES202-实时PBR材质/" rel="bookmark">【高质量实时渲染】实时PBR材质</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/06/05/20220605-GAMES202-实时全局光照/" rel="bookmark">【高质量实时渲染】实时全局光照</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/06/09/20220609-GAMES202-实时光线追踪/" rel="bookmark">【高质量实时渲染】实时光线追踪</a></div>
+    </li>
+  </ul>
+
+        
+          
+          
+          <nav class="article-nav" aria-label="相邻文章">
+            <a href="/LycTechStack.github.io/2026/11/19/20261119-env-05-atmosphere/" rel="prev"><small>上一篇</small>【环境渲染】（五）大气散射、空气透视与体积光</a>
+            <a href="/LycTechStack.github.io/2026/11/19/20261119-env-03-clouds/" rel="next"><small>下一篇</small>【环境渲染】（三）体积云的密度、光照与时域重建</a>
+          </nav>
+        
+        
+    
+
+<section class="article-discussion" aria-labelledby="discussion-title">
+  <h2 id="discussion-title">文章讨论</h2>
+  <a class="text-link" target="_blank" rel="noopener" href="https://github.com/LYChen328/LycTechStack.github.io/issues?q=is%3Aissue%20label%3A21c262e5a30b5fce2a4e0001b228706a">在 GitHub 查看与回复</a>
+  <a class="text-link" target="_blank" rel="noopener" href="https://github.com/LYChen328/LycTechStack.github.io/issues/new?title=%E3%80%90%E7%8E%AF%E5%A2%83%E6%B8%B2%E6%9F%93%E3%80%91%EF%BC%88%E5%9B%9B%EF%BC%89%E8%A7%86%E9%94%A5%E4%BD%93%E7%B4%A0%E4%B8%8E%E5%B1%80%E9%83%A8%E4%BD%93%E7%A7%AF%E9%9B%BE&amp;body=https%3A%2F%2Flychen328.github.io%2FLycTechStack.github.io%2F2026%2F11%2F19%2F20261119-env-04-fog%2F&amp;labels=Gitalk%2C21c262e5a30b5fce2a4e0001b228706a">发起讨论</a>
+</section>
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+      </div>
+    </div>
+  </article>
+</div>
+</main>
+  <footer class="site-footer"><div class="wrap footer-inner">
+    <div class="footer-brand"><img src="/LycTechStack.github.io/images/journal/mark.svg" alt="" width="24" height="24"><strong>LycTechStack</strong><span>© 2021–2026 Lyc</span></div>
+    <div class="footer-links">
+      <a href="mailto:27487358@qq.com">联系作者</a>
+      <a href="/LycTechStack.github.io/atom.xml"><svg class="icon" width="14" height="14" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#rss"/></svg> RSS</a>
+      <a href="#top">返回顶部 ↑</a>
+    </div>
+  </div>
+  <div class="wrap footer-counts">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+  <span id="busuanzi_container_site_uv" style="display:none">访客 <span id="busuanzi_value_site_uv"></span></span>
+  <span id="busuanzi_container_site_pv" style="display:none">浏览 <span id="busuanzi_value_site_pv"></span></span>
+
+</div>
+  </footer>
+  
+    <dialog class="search-dialog" aria-labelledby="search-title" data-index="/LycTechStack.github.io/search.xml">
+  <div class="dialog-head"><h2 id="search-title">搜索笔记</h2><form method="dialog"><button class="icon-button" aria-label="关闭搜索"><svg class="icon" width="18" height="18" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#close"/></svg></button></form></div>
+  <label class="search-field"><svg class="icon" width="20" height="20" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#search"/></svg><input type="search" aria-label="搜索标题、标签或正文" placeholder="输入标题、标签或正文关键词…" autocomplete="off" spellcheck="false"></label>
+  <div class="search-suggestions"><p>常用标签</p><div class="tag-cloud"><button type="button" data-query="计算机图形学"># 计算机图形学</button><button type="button" data-query="C++"># C++</button><button type="button" data-query="实时渲染"># 实时渲染</button><button type="button" data-query="光线追踪"># 光线追踪</button><button type="button" data-query="游戏引擎"># 游戏引擎</button><button type="button" data-query="设计模式"># 设计模式</button></div></div>
+  <p class="search-status" role="status"></p><ol class="search-results"></ol>
+</dialog>
+
+    <script defer src="/LycTechStack.github.io/js/journal-search.js"></script>
+  
+  
+    
+<script src="/LycTechStack.github.io/js/utils.js"></script>
+
+  
+  
+  
+</body>
+</html>
