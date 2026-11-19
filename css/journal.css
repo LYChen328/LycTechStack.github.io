@@ -498,7 +498,7 @@ body:has(.search-dialog[open]) { overflow: hidden; }
   .atlas-columns { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 22px; }
 }
 @media (min-width: 601px) and (max-width: 820px) {
-  .hero h1 { font-size: clamp(56px, 8.8vw, 72px); }
+  .hero h1 { font-size: clamp(49px, 8.15vw, 67px); }
   .map-hub { gap: 6px; font-size: 12px; }
   .map-hub span { padding-inline: 6px; }
 }
