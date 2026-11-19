@@ -2,7 +2,8 @@
   const canvases = document.querySelectorAll('.starfield');
   if (!canvases.length) return;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-  const pointer = {x: 0, y: 0, targetX: 0, targetY: 0};
+  let pointer = null;
+  let previousPointer = null;
   const motionButton = document.querySelector('[data-motion]');
   let paused = false;
   try { paused = localStorage.getItem('studio-motion') === 'paused'; } catch {}
@@ -63,22 +64,60 @@
     if (!ctx) return null;
     const layer=document.createElement('canvas');
     const dust=layer.getContext('2d');
-    const sparks=[];
+    const sparks = [];
+    const particles = [];
+    const resting = document.createElement('canvas');
+    const rest = resting.getContext('2d');
+    // Reuse small sprites so moving a bright star also moves its halo.
+    const sprites = new Map();
     let w=0,h=0,dpr=1;
+    let unsettled = false;
+
+    function addParticle(x, y, radius, color, alpha, shine) {
+      const r = Math.max(.35, Math.round(radius * 4) / 4);
+      const key = [r, color, shine].join('/');
+      let sprite = sprites.get(key);
+      if (!sprite) {
+        const half = Math.ceil(r * (shine ? 8 : 1) + 2);
+        const image = document.createElement('canvas');
+        image.width = image.height = Math.ceil(2 * half * dpr);
+        const brush = image.getContext('2d');
+        brush.scale(image.width / (2 * half), image.height / (2 * half));
+        if (shine === 2) flare(brush, half, half, r, color);
+        if (shine === 1) glow(brush, half, half, r * 5, color, .26);
+        point(brush, half, half, r, color, 1);
+        sprite = {image, half};
+        sprites.set(key, sprite);
+      }
+      const particle = {x, y, ox: 0, oy: 0, alpha, strength: 0, sprite};
+      particles.push(particle);
+      paint(rest, particle, alpha);
+    }
+
+    function paint(target, star, alpha) {
+      const {image, half} = star.sprite;
+      target.globalAlpha = alpha;
+      target.drawImage(image, star.x + star.ox - half, star.y + star.oy - half, 2 * half, 2 * half);
+    }
+
     function prepare() {
       w=canvas.clientWidth; h=canvas.clientHeight;
       if (!w || !h) return;
       dpr=Math.min(devicePixelRatio || 1,1.6);
-      canvas.width=layer.width=Math.round(w*dpr);
-      canvas.height=layer.height=Math.round(h*dpr);
+      canvas.width=layer.width=resting.width=Math.round(w*dpr);
+      canvas.height=layer.height=resting.height=Math.round(h*dpr);
       ctx.setTransform(dpr,0,0,dpr,0,0);
       dust.setTransform(dpr,0,0,dpr,0,0);
+      rest.setTransform(dpr,0,0,dpr,0,0);
+      particles.length = 0;
+      sprites.clear();
+      unsettled = false;
       const random=randomSource(12349);
       const size=Math.min(1.22,Math.max(.64,w/1280));
       for (let i=0;i<Math.min(850,w*h/950);i++) {
         const x=random()*w, y=random()*h;
         const r=.24+random()**4*1.1;
-        point(dust,x,y,r,margin?[126,147,174]:[180,204,220],.14+random()*.6);
+        addParticle(x,y,r,margin?[126,147,174]:[180,204,220],.14+random()*.6,0);
       }
       sparks.length=0;
       if (margin) return;
@@ -95,9 +134,12 @@
           const color=colors[Math.floor(random()*colors.length)];
           const intensity=random();
           const r=(.22+intensity**7*1.95)*size;
-          point(dust,x,y,r,color,.15+intensity*.83);
-          if (intensity>.984) glow(dust,x,y,r*5,color,.22);
-          if (intensity>.997) flare(dust,x,y,r*1.25,color);
+          if (intensity > .78 || i % 9 === 0) {
+            const shine = intensity > .997 ? 2 : Number(intensity > .984);
+            addParticle(x, y, r, color, .15 + intensity * .83, shine);
+          } else {
+            point(dust,x,y,r,color,.15+intensity*.83);
+          }
         }
         const head=orbit(band,1,w,h);
         glow(dust,head.x,head.y,42*size,colors[0],.47);
@@ -105,20 +147,88 @@
         for (let i=0;i<44;i++) sparks.push({band,t:random(),speed:.006+random()*.01,phase:random()*6.28});
       }
     }
-    function draw(time) {
+    function drawParticles(dt) {
+      const radius = margin ? 76 : 112;
+      ctx.drawImage(resting, 0, 0, w, h);
+      if (!pointer && !unsettled) return;
+      const rect = canvas.getBoundingClientRect();
+      const inside = pointer && pointer.x >= rect.left && pointer.x <= rect.right &&
+        pointer.y >= rect.top && pointer.y <= rect.bottom && !paused && !reduced.matches;
+      if (!inside && !unsettled) return;
+
+      // Sample the swept segment so a quick stroke can disturb stars between frames.
+      const px = inside ? pointer.x - rect.left : 0;
+      const py = inside ? pointer.y - rect.top : 0;
+      const stepX = inside && previousPointer ? pointer.x - previousPointer.x : 0;
+      const stepY = inside && previousPointer ? pointer.y - previousPointer.y : 0;
+      const length2 = stepX * stepX + stepY * stepY;
+      const speedLimit = Math.min(1, 54 / (Math.sqrt(length2) || 1));
+      const approach = 1 - Math.exp(-18 * dt);
+      const settle = Math.exp(-5.5 * dt);
+      unsettled = false;
+      let left = w, top = h, right = 0, bottom = 0;
+      for (const star of particles) {
+        const sx = star.x - px;
+        const sy = star.y - py;
+        const along = length2 ? Math.max(0, Math.min(1, -(sx * stepX + sy * stepY) / length2)) : 0;
+        const dx = sx + along * stepX;
+        const dy = sy + along * stepY;
+        const distance2 = dx * dx + dy * dy;
+        let strength = 0;
+        if (inside && distance2 < radius * radius) {
+          const distance = Math.sqrt(distance2);
+          strength = (1 - distance / radius) ** 1.5;
+          const push = (margin ? 32 : 72) * strength / Math.max(distance, 1);
+          star.ox += (dx * push - star.ox) * approach + stepX * speedLimit * .48 * strength;
+          star.oy += (dy * push - star.oy) * approach + stepY * speedLimit * .48 * strength;
+        } else {
+          star.ox *= settle;
+          star.oy *= settle;
+        }
+        if (Math.abs(star.ox) + Math.abs(star.oy) < .06) {
+          star.ox = star.oy = 0;
+        } else {
+          unsettled = true;
+        }
+        star.strength = strength;
+        if (star.ox || star.oy || strength) {
+          const pad = star.sprite.half + 1;
+          left = Math.min(left, star.x + Math.min(0, star.ox) - pad);
+          right = Math.max(right, star.x + Math.max(0, star.ox) + pad);
+          top = Math.min(top, star.y + Math.min(0, star.oy) - pad);
+          bottom = Math.max(bottom, star.y + Math.max(0, star.oy) + pad);
+        }
+      }
+      if (right <= left || bottom <= top) return;
+
+      // Keep the distant sky cached. Rebuild only the patch where stars moved.
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(left, top, right - left, bottom - top);
+      ctx.clip();
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(layer, 0, 0, w, h);
+      for (const star of particles) {
+        const x = star.x + star.ox, y = star.y + star.oy;
+        const pad = star.sprite.half + 1;
+        if (x + pad < left || x - pad > right || y + pad < top || y - pad > bottom) continue;
+        paint(ctx, star, Math.min(1, star.alpha + .32 * star.strength));
+      }
+      ctx.restore();
+    }
+
+    function draw(time, dt = 0) {
       if (!w || !h) return;
-      const gain=margin?3:9;
-      const dx=pointer.x*gain+Math.sin(time*.09)*gain*.45;
-      const dy=pointer.y*gain+Math.cos(time*.08)*gain*.35;
       ctx.clearRect(0,0,w,h);
-      ctx.drawImage(layer,dx,dy,w,h);
+      ctx.drawImage(layer,0,0,w,h);
+      drawParticles(dt);
       if (margin) return;
       for (const star of sparks) {
         const t=(star.t+time*star.speed)%1;
         const p=orbit(star.band,t,w,h);
         const offset=Math.sin(t*10+star.phase)*(1-t)*8;
         const brightness=.38+.45*(.5+.5*Math.sin(time+star.phase));
-        point(ctx,p.x+dx*1.6,p.y+dy*1.6+offset,1.25,star.band?cool[2]:warm[2],brightness);
+        point(ctx,p.x,p.y+offset,1.25,star.band?cool[2]:warm[2],brightness);
       }
     }
     const item={canvas,visible:false,draw};
@@ -131,15 +241,14 @@
     const dt=last?Math.min((now-last)/1000,.05):0;
     last=now;
     elapsed+=dt;
-    const follow=1-Math.exp(-dt*4);
-    pointer.x+=(pointer.targetX-pointer.x)*follow;
-    pointer.y+=(pointer.targetY-pointer.y)*follow;
-    scenes.forEach(item=>{if(item.visible)item.draw(elapsed);});
+    scenes.forEach(item=>{if(item.visible)item.draw(elapsed, dt);});
+    previousPointer = pointer;
     frame=requestAnimationFrame(tick);
   }
   function sync() {
     cancelAnimationFrame(frame);
     last=0;
+    previousPointer = null;
     const stopped=paused||reduced.matches;
     if (motionButton) {
       motionButton.hidden=reduced.matches;
@@ -156,11 +265,16 @@
   });
   scenes.forEach(item=>observer.observe(item.canvas));
   window.addEventListener('pointermove',event=>{
-    if (event.pointerType==='touch') return;
-    pointer.targetX=(event.clientX/innerWidth-.5)*2;
-    pointer.targetY=(event.clientY/innerHeight-.5)*2;
+    if (event.pointerType === 'touch') {
+      clearPointer();
+      return;
+    }
+    pointer = {x: event.clientX, y: event.clientY};
   },{passive:true});
-  document.documentElement.addEventListener('pointerleave',()=>{pointer.targetX=pointer.targetY=0;});
+  function clearPointer() { pointer = previousPointer = null; }
+  document.documentElement.addEventListener('pointerleave', clearPointer);
+  window.addEventListener('pointercancel', clearPointer);
+  window.addEventListener('blur', clearPointer);
   motionButton?.addEventListener('click',()=>{
     paused=!paused;
     try {localStorage.setItem('studio-motion',paused?'paused':'playing');} catch {}
