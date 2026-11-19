@@ -31,7 +31,7 @@
 <meta name="twitter:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/05/20/20220520-%E6%B8%B2%E6%9F%93%E5%99%A8-%E6%A1%86%E6%9E%B6%E6%90%AD%E5%BB%BA/image-20220519162253946.png">
   <link rel="canonical" href="https://lychen328.github.io/LycTechStack.github.io/2022/05/20/20220520-%E6%B8%B2%E6%9F%93%E5%99%A8-%E6%A1%86%E6%9E%B6%E6%90%AD%E5%BB%BA/">
   <link rel="icon" href="/LycTechStack.github.io/images/journal/mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/LycTechStack.github.io/css/journal.css">
+  <link rel="stylesheet" href="/LycTechStack.github.io/css/journal.css?v=ringworld">
   
   
 
@@ -40,13 +40,14 @@
 
 
 
-  <script defer src="/LycTechStack.github.io/js/journal.js"></script>
-  
+  <script defer src="/LycTechStack.github.io/js/journal.js?v=ringworld"></script>
+  <script defer src="/LycTechStack.github.io/js/world-field.js"></script>
 <link rel="alternate" href="/LycTechStack.github.io/atom.xml" title="LycTechStack" type="application/atom+xml">
 </head>
-<body id="top">
+<body id="top" class="reading-view">
   <a class="skip-link" href="#main">跳到正文</a>
   <div class="world-grid" aria-hidden="true"></div>
+  <canvas class="star-field" aria-hidden="true"></canvas>
   <header class="topbar">
     <div class="wrap topbar-inner">
       <a class="wordmark" href="/LycTechStack.github.io/" rel="home"><img src="/LycTechStack.github.io/images/journal/mark.svg" alt="" width="33" height="33">LycTechStack</a>
@@ -70,6 +71,7 @@
       </nav>
       <div class="header-tools">
         <button class="search-trigger js-only" type="button" aria-label="搜索文章" aria-haspopup="dialog"><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#search"/></svg><span>搜索</span><kbd>/</kbd></button>
+        <button class="motion-toggle js-only" type="button" aria-label="暂停背景动效" title="暂停背景动效"><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#pause"/></svg><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#play"/></svg></button>
         <a class="github-link" href="https://github.com/LYChen328/" aria-label="Lyc 的 GitHub" target="_blank" rel="noopener"><svg class="icon" width="19" height="19" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#github"/></svg></a>
         <button class="menu-toggle js-only" type="button" aria-label="展开导航" aria-expanded="false" aria-controls="primary-nav"><svg class="icon" width="22" height="22" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#menu"/></svg></button>
       </div>
@@ -182,6 +184,9 @@
       <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/05/19/20220519-渲染器-环境配置/" rel="bookmark">【光栅化渲染器】（一）环境配置</a></div>
     </li>
     <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/05/21/20220521-渲染器-变换与深度测试/" rel="bookmark">【光栅化渲染器】（三）变换与深度测试</a></div>
+    </li>
+    <li class="popular-posts-item">
       <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/05/22/20220522-渲染器-纹理/" rel="bookmark">【光栅化渲染器】（四）纹理</a></div>
     </li>
     <li class="popular-posts-item">
@@ -189,9 +194,6 @@
     </li>
     <li class="popular-posts-item">
       <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/05/24/20220524-渲染器-剔除与裁剪/" rel="bookmark">【光栅化渲染器】（六）剔除与裁剪</a></div>
-    </li>
-    <li class="popular-posts-item">
-      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/05/24/20220524-渲染器-加载模型/" rel="bookmark">【光栅化渲染器】（七）加载模型</a></div>
     </li>
   </ul>
 

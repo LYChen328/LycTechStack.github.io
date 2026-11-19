@@ -57,7 +57,7 @@
     root.classList.toggle('motion-off', off);
     if (off) grid.style.transform = '';
     if (motionButton) {
-      const label = systemMotion.matches ? '已按系统偏好减少动效' : (off ? '播放场景动效' : '暂停场景动效');
+      const label = systemMotion.matches ? '已按系统偏好减少动效' : (off ? '播放背景动效' : '暂停背景动效');
       motionButton.dataset.paused = String(off);
       motionButton.disabled = systemMotion.matches;
       motionButton.title = label;

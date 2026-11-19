@@ -19,7 +19,7 @@
 <meta name="twitter:card" content="summary">
   <link rel="canonical" href="https://lychen328.github.io/LycTechStack.github.io/">
   <link rel="icon" href="/LycTechStack.github.io/images/journal/mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/LycTechStack.github.io/css/journal.css">
+  <link rel="stylesheet" href="/LycTechStack.github.io/css/journal.css?v=ringworld">
   
   
 
@@ -28,13 +28,14 @@
 
 
 
-  <script defer src="/LycTechStack.github.io/js/journal.js"></script>
-  <script defer src="/LycTechStack.github.io/js/terrain-view.js"></script>
+  <script defer src="/LycTechStack.github.io/js/journal.js?v=ringworld"></script>
+  <script defer src="/LycTechStack.github.io/js/world-field.js"></script>
 <link rel="alternate" href="/LycTechStack.github.io/atom.xml" title="LycTechStack" type="application/atom+xml">
 </head>
 <body id="top">
   <a class="skip-link" href="#main">跳到正文</a>
   <div class="world-grid" aria-hidden="true"></div>
+  <canvas class="star-field" aria-hidden="true"></canvas>
   <header class="topbar">
     <div class="wrap topbar-inner">
       <a class="wordmark" href="/LycTechStack.github.io/" rel="home"><img src="/LycTechStack.github.io/images/journal/mark.svg" alt="" width="33" height="33">LycTechStack</a>
@@ -58,6 +59,7 @@
       </nav>
       <div class="header-tools">
         <button class="search-trigger js-only" type="button" aria-label="搜索文章" aria-haspopup="dialog"><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#search"/></svg><span>搜索</span><kbd>/</kbd></button>
+        <button class="motion-toggle js-only" type="button" aria-label="暂停背景动效" title="暂停背景动效"><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#pause"/></svg><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#play"/></svg></button>
         <a class="github-link" href="https://github.com/LYChen328/" aria-label="Lyc 的 GitHub" target="_blank" rel="noopener"><svg class="icon" width="19" height="19" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#github"/></svg></a>
         <button class="menu-toggle js-only" type="button" aria-label="展开导航" aria-expanded="false" aria-controls="primary-nav"><svg class="icon" width="22" height="22" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#menu"/></svg></button>
       </div>
@@ -66,33 +68,57 @@
   </header>
   <main id="main" tabindex="-1">
   
-    <section class="hero" aria-labelledby="hero-title">
-  <div class="hero-atmosphere" aria-hidden="true"></div>
-  <div class="hero-grid" aria-hidden="true"></div>
-  <canvas class="particle-field" aria-hidden="true"></canvas>
-  <div class="wrap hero-inner">
-    <div class="hero-copy">
+    
+<section class="hero" aria-labelledby="hero-title">
+  <div class="world-stage">
+    <div class="world-frame world-base"><div class="world-sheet">
+      
+<picture>
+  <source media="(max-width: 600px)" sizes="100vw" srcset="/LycTechStack.github.io/images/journal/ringworld-portrait-540.webp 540w, /LycTechStack.github.io/images/journal/ringworld-portrait-900.webp 900w">
+  <img src="/LycTechStack.github.io/images/journal/ringworld-1440.webp"
+       srcset="/LycTechStack.github.io/images/journal/ringworld-1440.webp 1440w, /LycTechStack.github.io/images/journal/ringworld-2042.webp 2042w" sizes="100vw"
+       width="2042" height="770" fetchpriority="high" alt="从天文台俯瞰河谷与远城，一道明亮的环带横跨夜空。">
+</picture>
+
+      <svg class="world-transit" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        <g class="transit-wide">
+          <path class="orbit-light" pathLength="1000" d="M40 -7 C194 326 423 601 724 675"/>
+          <path class="rail-light" pathLength="1000" d="M-4 658 C94 703 184 792 297 827"/>
+        </g>
+        <g class="transit-tall">
+          <path class="orbit-light" pathLength="1000" d="M-4 363 C174 493 442 604 763 635"/>
+          <path class="rail-light" pathLength="1000" d="M-4 702 C142 726 316 778 465 784"/>
+        </g>
+      </svg>
+    </div></div>
+    <div class="world-wash" aria-hidden="true"></div>
+    <div class="world-frame world-foreground" aria-hidden="true"><div class="world-sheet">
+<picture>
+  <source media="(max-width: 600px)" sizes="100vw" srcset="/LycTechStack.github.io/images/journal/ringworld-portrait-540.webp 540w, /LycTechStack.github.io/images/journal/ringworld-portrait-900.webp 900w">
+  <img src="/LycTechStack.github.io/images/journal/ringworld-1440.webp"
+       srcset="/LycTechStack.github.io/images/journal/ringworld-1440.webp 1440w, /LycTechStack.github.io/images/journal/ringworld-2042.webp 2042w" sizes="100vw"
+       width="2042" height="770" alt="">
+</picture>
+</div></div>
+    <div class="wrap hero-copy">
       <p class="kicker" lang="en">GAME ENGINE JOURNAL</p>
-      <h1 id="hero-title" lang="en">Engine<br> <em>Notes<span>.</span></em></h1>
+      <h1 id="hero-title" lang="en">Engine <em>Notes<span>.</span></em></h1>
       <p class="hero-lead">游戏引擎与图形学开发笔记</p>
-      <p class="hero-intro">从渲染管线到引擎架构，记录构建虚拟世界的技术细节。</p>
-      <div class="hero-links"><a class="button-primary" href="#notes">浏览笔记 <svg class="icon" width="18" height="18" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#arrow"/></svg></a><a class="button-secondary" href="/LycTechStack.github.io/archives/"><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#layers"/></svg> 文章归档</a></div>
+      <div class="hero-links"><a class="button-primary" href="#notes">浏览笔记 <svg class="icon" width="17" height="17" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#arrow"/></svg></a><a class="button-secondary" href="/LycTechStack.github.io/archives/">文章归档 <svg class="icon" width="14" height="14" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#chevron"/></svg></a></div>
     </div>
-    <figure class="viewport" aria-label="地形高度场视口">
-      <figcaption><span class="viewport-indicator"></span><span lang="en">SCENE VIEW</span><span class="caption-divider">/</span><span>地形高度场</span></figcaption>
-      <div class="scene-art">
-        <img class="terrain-surface" src="/LycTechStack.github.io/images/journal/terrain.webp" fetchpriority="high" width="1250" height="725" alt="一块悬浮的山地剖面，青绿色等高线勾勒出山峰和谷地">
-        <img class="terrain-wire" data-src="/LycTechStack.github.io/images/journal/terrain-wire.webp" width="1250" height="725" alt="地形表面的三角网格" hidden>
-      </div>
-      <div class="axis" aria-hidden="true"><svg viewBox="0 0 56 52" fill="none" stroke-width="1.3"><path stroke="#67ddb7" d="M25 32V8"/><path stroke="#8ca8ed" d="m25 32 18 9"/><path stroke="#d7a574" d="m25 32-16 8"/><g stroke="none" font-family="monospace" font-size="8"><text x="23" y="7" fill="#83e3c4">Z</text><text x="45" y="45" fill="#a2b6e5">Y</text><text x="2" y="46" fill="#d7a574">X</text></g></svg></div>
-      <div class="view-controls js-only">
-        <div class="view-modes" role="group" aria-label="地形显示模式">
-          <button type="button" data-mode="surface" aria-pressed="true"><svg class="icon" width="13" height="13" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#cube"/></svg>着色</button>
-          <button type="button" data-mode="wire" aria-pressed="false"><svg class="icon" width="14" height="14" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#mesh"/></svg>线框</button>
-        </div>
-        <button type="button" class="motion-toggle" aria-label="暂停场景动效" title="暂停场景动效"><svg class="icon" width="13" height="13" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#pause"/></svg><svg class="icon" width="13" height="13" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#play"/></svg></button>
-      </div>
-    </figure>
+    <button class="scene-toggle js-only" type="button" aria-expanded="false" aria-controls="world-notes"><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#layers"/></svg><span>显示场景笔记</span></button>
+    <nav class="world-frame world-notes" id="world-notes" aria-label="场景里的技术笔记" hidden><div class="world-sheet">
+      
+        
+        <a class="world-pin pin-ring" href="/LycTechStack.github.io/2022/03/13/20220313-%E5%87%A0%E4%BD%95/" title="【计算机图形学】（九）几何"><i aria-hidden="true"></i><span>环带几何 <svg class="icon" width="12" height="12" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></span></a>
+      
+        
+        <a class="world-pin pin-sky" href="/LycTechStack.github.io/2022/06/02/20220602-GAMES202-%E5%AE%9E%E6%97%B6%E7%8E%AF%E5%A2%83%E5%85%89%E7%85%A7/" title="【高质量实时渲染】实时环境光照"><i aria-hidden="true"></i><span>环境光照 <svg class="icon" width="12" height="12" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></span></a>
+      
+        
+        <a class="world-pin pin-city" href="/LycTechStack.github.io/2022/08/07/20220807-%E9%81%AE%E6%8C%A1%E5%89%94%E9%99%A4%E6%80%BB%E7%BB%93/" title="【Real-Time Rendering】遮挡剔除总结"><i aria-hidden="true"></i><span>城市遮挡剔除 <svg class="icon" width="12" height="12" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#diagonal"/></svg></span></a>
+      
+    </div></nav>
   </div>
   <div class="hero-foot"><div class="wrap hero-foot-inner">
     <div class="journal-counts">

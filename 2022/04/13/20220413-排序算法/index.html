@@ -23,13 +23,13 @@
 <meta property="article:modified_time" content="2026-11-18T15:42:23.743Z">
 <meta property="article:author" content="Lyc">
 <meta property="article:tag" content="C++">
-<meta property="article:tag" content="算法">
 <meta property="article:tag" content="STL">
+<meta property="article:tag" content="算法">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/04/13/20220413-%E6%8E%92%E5%BA%8F%E7%AE%97%E6%B3%95/1620707085-FdqElS-%E8%AE%A1%E6%95%B0%E6%8E%92%E5%BA%8F.gif">
   <link rel="canonical" href="https://lychen328.github.io/LycTechStack.github.io/2022/04/13/20220413-%E6%8E%92%E5%BA%8F%E7%AE%97%E6%B3%95/">
   <link rel="icon" href="/LycTechStack.github.io/images/journal/mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/LycTechStack.github.io/css/journal.css">
+  <link rel="stylesheet" href="/LycTechStack.github.io/css/journal.css?v=ringworld">
   
   
 
@@ -38,13 +38,14 @@
 
 
 
-  <script defer src="/LycTechStack.github.io/js/journal.js"></script>
-  
+  <script defer src="/LycTechStack.github.io/js/journal.js?v=ringworld"></script>
+  <script defer src="/LycTechStack.github.io/js/world-field.js"></script>
 <link rel="alternate" href="/LycTechStack.github.io/atom.xml" title="LycTechStack" type="application/atom+xml">
 </head>
-<body id="top">
+<body id="top" class="reading-view">
   <a class="skip-link" href="#main">跳到正文</a>
   <div class="world-grid" aria-hidden="true"></div>
+  <canvas class="star-field" aria-hidden="true"></canvas>
   <header class="topbar">
     <div class="wrap topbar-inner">
       <a class="wordmark" href="/LycTechStack.github.io/" rel="home"><img src="/LycTechStack.github.io/images/journal/mark.svg" alt="" width="33" height="33">LycTechStack</a>
@@ -68,6 +69,7 @@
       </nav>
       <div class="header-tools">
         <button class="search-trigger js-only" type="button" aria-label="搜索文章" aria-haspopup="dialog"><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#search"/></svg><span>搜索</span><kbd>/</kbd></button>
+        <button class="motion-toggle js-only" type="button" aria-label="暂停背景动效" title="暂停背景动效"><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#pause"/></svg><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#play"/></svg></button>
         <a class="github-link" href="https://github.com/LYChen328/" aria-label="Lyc 的 GitHub" target="_blank" rel="noopener"><svg class="icon" width="19" height="19" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#github"/></svg></a>
         <button class="menu-toggle js-only" type="button" aria-label="展开导航" aria-expanded="false" aria-controls="primary-nav"><svg class="icon" width="22" height="22" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#menu"/></svg></button>
       </div>
@@ -415,17 +417,17 @@
 <h3 id="4-6-总结"><a href="#4-6-总结" class="headerlink" title="4.6 总结"></a>4.6 总结</h3><p>通过以上的 STL 源码，可以看出 STL 的 sort 函数首先对整个序列使用 IntroSort 进行排序，如果序列长度不足 16，直接退出 IntroSort，因为对于短序列，快速排序效率可能不如插入排序，所以直接进行插入排序。IntroSort 内部会首先根据序列长度计算快速排序的最大递归层数，当快排递归到最大层数后改用堆排序，经过 IntroSort 后的序列被分为多个长度小于等于 16 的子序列，这些子序列之间有序，子序列内部基本有序，因此整个序列处于基本有序状态。最后调用插入排序对整个序列排序，插入排序在序列基本有序的情况下效率很高。</p>
 
         </div>
-        <div class="tag-cloud post-tags"><a href="/LycTechStack.github.io/tags/C/" rel="tag"><span>#</span> C++</a><a href="/LycTechStack.github.io/tags/%E7%AE%97%E6%B3%95/" rel="tag"><span>#</span> 算法</a><a href="/LycTechStack.github.io/tags/STL/" rel="tag"><span>#</span> STL</a></div>
+        <div class="tag-cloud post-tags"><a href="/LycTechStack.github.io/tags/C/" rel="tag"><span>#</span> C++</a><a href="/LycTechStack.github.io/tags/STL/" rel="tag"><span>#</span> STL</a><a href="/LycTechStack.github.io/tags/%E7%AE%97%E6%B3%95/" rel="tag"><span>#</span> 算法</a></div>
         
         <aside class="credit"><strong>文章版权</strong><p>本文收录于 <a href="/LycTechStack.github.io/">LycTechStack</a>，仅供学习与参考。转载时请注明作者和出处。部分资料来自网络，如有侵权请联系博主。</p></aside>
         
   <div class="popular-posts-header">相关文章</div>
   <ul class="popular-posts">
     <li class="popular-posts-item">
-      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/03/07/20220307-线性动态规划-单串/" rel="bookmark">【动态规划】（一）线性动态规划之单串问题</a></div>
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/03/03/20220303-二叉树/" rel="bookmark">【数据结构】二叉树</a></div>
     </li>
     <li class="popular-posts-item">
-      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/03/03/20220303-二叉树/" rel="bookmark">【数据结构】二叉树</a></div>
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/03/07/20220307-线性动态规划-单串/" rel="bookmark">【动态规划】（一）线性动态规划之单串问题</a></div>
     </li>
     <li class="popular-posts-item">
       <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/03/10/20220310-线性动态规划-带维度单串/" rel="bookmark">【动态规划】（二）线性动态规划之带维度单串问题</a></div>

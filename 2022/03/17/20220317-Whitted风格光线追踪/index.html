@@ -80,7 +80,7 @@
 <meta name="twitter:image" content="https://lychen328.github.io/LycTechStack.github.io/2022/03/17/20220317-Whitted%E9%A3%8E%E6%A0%BC%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA/image-20220317153639301.png">
   <link rel="canonical" href="https://lychen328.github.io/LycTechStack.github.io/2022/03/17/20220317-Whitted%E9%A3%8E%E6%A0%BC%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA/">
   <link rel="icon" href="/LycTechStack.github.io/images/journal/mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/LycTechStack.github.io/css/journal.css">
+  <link rel="stylesheet" href="/LycTechStack.github.io/css/journal.css?v=ringworld">
   
   
 
@@ -89,13 +89,14 @@
 
 
 
-  <script defer src="/LycTechStack.github.io/js/journal.js"></script>
-  
+  <script defer src="/LycTechStack.github.io/js/journal.js?v=ringworld"></script>
+  <script defer src="/LycTechStack.github.io/js/world-field.js"></script>
 <link rel="alternate" href="/LycTechStack.github.io/atom.xml" title="LycTechStack" type="application/atom+xml">
 </head>
-<body id="top">
+<body id="top" class="reading-view">
   <a class="skip-link" href="#main">跳到正文</a>
   <div class="world-grid" aria-hidden="true"></div>
+  <canvas class="star-field" aria-hidden="true"></canvas>
   <header class="topbar">
     <div class="wrap topbar-inner">
       <a class="wordmark" href="/LycTechStack.github.io/" rel="home"><img src="/LycTechStack.github.io/images/journal/mark.svg" alt="" width="33" height="33">LycTechStack</a>
@@ -119,6 +120,7 @@
       </nav>
       <div class="header-tools">
         <button class="search-trigger js-only" type="button" aria-label="搜索文章" aria-haspopup="dialog"><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#search"/></svg><span>搜索</span><kbd>/</kbd></button>
+        <button class="motion-toggle js-only" type="button" aria-label="暂停背景动效" title="暂停背景动效"><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#pause"/></svg><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#play"/></svg></button>
         <a class="github-link" href="https://github.com/LYChen328/" aria-label="Lyc 的 GitHub" target="_blank" rel="noopener"><svg class="icon" width="19" height="19" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#github"/></svg></a>
         <button class="menu-toggle js-only" type="button" aria-label="展开导航" aria-expanded="false" aria-controls="primary-nav"><svg class="icon" width="22" height="22" aria-hidden="true" focusable="false"><use href="/LycTechStack.github.io/images/journal/icons.svg#menu"/></svg></button>
       </div>
@@ -328,10 +330,10 @@
       <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/03/18/20220318-辐射度量学/" rel="bookmark">【计算机图形学】（十二）辐射度量学基础</a></div>
     </li>
     <li class="popular-posts-item">
-      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/03/24/20220324-材质/" rel="bookmark">【计算机图形学】（十四）材质</a></div>
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/03/20/20220320-路径追踪/" rel="bookmark">【计算机图形学】（十三）路径追踪</a></div>
     </li>
     <li class="popular-posts-item">
-      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/03/20/20220320-路径追踪/" rel="bookmark">【计算机图形学】（十三）路径追踪</a></div>
+      <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/03/24/20220324-材质/" rel="bookmark">【计算机图形学】（十四）材质</a></div>
     </li>
     <li class="popular-posts-item">
       <div class="popular-posts-title"><a href="/LycTechStack.github.io/2022/03/24/20220324-渲染和材质前沿/" rel="bookmark">【计算机图形学】（十五）高级渲染和材质概述</a></div>
