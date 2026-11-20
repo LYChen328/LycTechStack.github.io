@@ -22,7 +22,7 @@ window.createJournalWeather = function createJournalWeather(stage) {
   const wrap = (value, span) => ((value % span) + span) % span;
 
   function holdTime() {
-    return 12 + Math.random() * 7;
+    return 3 + Math.random() * 2;
   }
   function mistSprite(color) {
     const tile = document.createElement('canvas');
